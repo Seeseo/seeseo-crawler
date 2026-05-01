@@ -89,8 +89,8 @@
     <div class="evolution-state">
       <p>Une seule session pour ce projet.</p>
       <p class="evolution-hint">
-        La timeline d'évolution s'active dès le 2<sup>e</sup> crawl — relancez un crawl plus tard
-        pour comparer les métriques dans le temps.
+        La timeline d'évolution s'active dès le 2<sup>e</sup> crawl — relancez un crawl plus tard pour
+        comparer les métriques dans le temps.
       </p>
       <div class="evolution-single-session">
         <div class="evo-stat"><span>Pages</span><strong>{fmtN(points[0].total_pages)}</strong></div>
@@ -117,7 +117,7 @@
       </label>
       <span class="evolution-summary">
         {points.length} sessions · du {fmtDate(points[0].started_at)} au {fmtDate(
-          points[points.length - 1].started_at
+          points[points.length - 1].started_at,
         )}
       </span>
     </div>

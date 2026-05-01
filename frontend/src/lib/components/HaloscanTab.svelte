@@ -259,8 +259,9 @@
     <div class="empty-state">
       <h3>API Haloscan non connectée</h3>
       <p class="text-muted text-sm">
-        Aucune clé API détectée. Définissez <code>haloscan.api_key</code> dans <code>config.yaml</code>,
-        ou la variable d'environnement <code>HALOSCAN_API_KEY</code>, ou configurez le MCP
+        Aucune clé API détectée. Définissez <code>haloscan.api_key</code> dans
+        <code>config.yaml</code>, ou la variable d'environnement <code>HALOSCAN_API_KEY</code>, ou
+        configurez le MCP
         <code>haloscan-lucky</code> dans Claude Desktop.
       </p>
     </div>
@@ -268,10 +269,10 @@
     <div class="empty-state">
       <h3>Aucune donnée Haloscan pour ce projet</h3>
       <p class="text-muted text-sm">
-        Source de la clé : <strong>{status.key_source}</strong>. Saisissez le domaine racine
-        (sans <code>https://</code>, sans <code>www.</code>, ex&nbsp;: <code>singular-is-future.com</code>)
-        puis lancez la synchronisation : positions ≤100, top 10 concurrents, courbe visibilité benchmarkée
-        sur ~2,5 ans, gap analysis (manqués + bested).
+        Source de la clé : <strong>{status.key_source}</strong>. Saisissez le domaine racine (sans
+        <code>https://</code>, sans <code>www.</code>, ex&nbsp;:
+        <code>singular-is-future.com</code>) puis lancez la synchronisation : positions ≤100, top 10
+        concurrents, courbe visibilité benchmarkée sur ~2,5 ans, gap analysis (manqués + bested).
       </p>
       <div class="domain-row">
         <input
@@ -281,7 +282,11 @@
           placeholder="exemple.com"
           disabled={syncing}
         />
-        <button class="btn btn-primary" disabled={syncing || !domainInput.trim()} onclick={startSync}>
+        <button
+          class="btn btn-primary"
+          disabled={syncing || !domainInput.trim()}
+          onclick={startSync}
+        >
           {syncing ? 'Synchronisation en cours…' : 'Synchroniser depuis Haloscan'}
         </button>
       </div>
@@ -320,7 +325,11 @@
       <section class="block">
         <h3>Visibilité benchmarkée vs concurrents</h3>
         <div class="chart-wrap">
-          <svg viewBox="0 0 {trendSVG.W} {trendSVG.H}" class="trend-svg" preserveAspectRatio="xMidYMid meet">
+          <svg
+            viewBox="0 0 {trendSVG.W} {trendSVG.H}"
+            class="trend-svg"
+            preserveAspectRatio="xMidYMid meet"
+          >
             <!-- Y gridlines + labels -->
             {#each trendSVG.yLabels as t}
               <line
@@ -343,13 +352,23 @@
                 y2={trendSVG.H - trendSVG.PADB + 4}
                 class="grid-x-tick"
               />
-              <text x={t.x} y={trendSVG.H - trendSVG.PADB + 18} class="axis-label" text-anchor="middle"
-                >{t.label}</text
+              <text
+                x={t.x}
+                y={trendSVG.H - trendSVG.PADB + 18}
+                class="axis-label"
+                text-anchor="middle">{t.label}</text
               >
             {/each}
             <!-- Lines -->
             {#each trendSVG.paths as s}
-              <path d={s.path} fill="none" stroke={s.color} stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />
+              <path
+                d={s.path}
+                fill="none"
+                stroke={s.color}
+                stroke-width="2"
+                stroke-linejoin="round"
+                stroke-linecap="round"
+              />
             {/each}
           </svg>
           <div class="legend">
@@ -456,7 +475,11 @@
                     <td>{k.keyword}</td>
                     <td class="num">{fmtN(k.volume || 0)}</td>
                     <td>
-                      <a href={k.best_competitor_url} target="_blank" rel="noopener" title={k.best_competitor_url}
+                      <a
+                        href={k.best_competitor_url}
+                        target="_blank"
+                        rel="noopener"
+                        title={k.best_competitor_url}
                         >{shorten(urlPath(k.best_competitor_url), 38)}</a
                       >
                       <span class="text-muted text-sm"> · {k.best_competitor_domain}</span>
@@ -485,8 +508,11 @@
                     <td>{k.keyword}</td>
                     <td class="num">{fmtN(k.volume || 0)}</td>
                     <td>
-                      <a href={k.best_reference_url} target="_blank" rel="noopener" title={k.best_reference_url}
-                        >{shorten(urlPath(k.best_reference_url), 38)}</a
+                      <a
+                        href={k.best_reference_url}
+                        target="_blank"
+                        rel="noopener"
+                        title={k.best_reference_url}>{shorten(urlPath(k.best_reference_url), 38)}</a
                       >
                     </td>
                     <td class="num">{Math.round(k.best_reference_position) || '—'}</td>
