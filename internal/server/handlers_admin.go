@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"testing"
 
 	"github.com/SEObserver/crawlobserver/internal/applog"
 	"github.com/SEObserver/crawlobserver/internal/backup"
@@ -271,22 +272,23 @@ func (s *Server) handleCreateProject(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Auto-sync GSC connection from mcp-gsc-lucky if the project name matches
-	// an available_site_url. Runs in background so project creation is never
-	// blocked by I/O on the credentials file.
-	go func() {
-		if _, err := gscluckysync.Sync(s.keyStore, &s.cfg.GSC); err != nil {
-			applog.Errorf("gsc-lucky", "post-create sync failed: %v", err)
-		}
-	}()
+	// an available_site_url, then SEObserver auto-connect + Haloscan sync.
+	// Skipped under `go test` to avoid racing on the SQLite store and the
+	// HTTP handler under -race.
+	if !testing.Testing() {
+		go func() {
+			if _, err := gscluckysync.Sync(s.keyStore, &s.cfg.GSC); err != nil {
+				applog.Errorf("gsc-lucky", "post-create sync failed: %v", err)
+			}
+		}()
 
-	// Same idea for SEObserver: if a global API key is configured, auto-create
-	// the provider_connection so backlinks/metrics work without manual setup.
-	go func() {
-		seobserverautoconnect.SyncProject(s.keyStore, &s.cfg.SEObserver, p.ID, p.Name)
-		// Trigger initial SEObserver fetch + Haloscan sync so the new project
-		// has all its data populated without the user clicking anything.
-		s.AutoSyncProjectData(p.ID, p.Name)
-	}()
+		go func() {
+			seobserverautoconnect.SyncProject(s.keyStore, &s.cfg.SEObserver, p.ID, p.Name)
+			// Trigger initial SEObserver fetch + Haloscan sync so the new project
+			// has all its data populated without the user clicking anything.
+			s.AutoSyncProjectData(p.ID, p.Name)
+		}()
+	}
 
 	w.WriteHeader(http.StatusCreated)
 	writeJSON(w, p)
