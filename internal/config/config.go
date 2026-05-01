@@ -383,7 +383,7 @@ func isWeakPassword(password string) bool {
 	}
 	weak := []string{
 		"password", "12345678", "123456789", "1234567890",
-		"crawlobserver", "admin123", "changeme",
+		"crawlobserver", "seeseocrawler", "admin123", "changeme",
 		"qwerty123", "letmein", "welcome1",
 	}
 	lower := strings.ToLower(password)
