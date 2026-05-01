@@ -159,16 +159,25 @@ func (c *Client) FetchSearchAnalytics(ctx context.Context, propertyURL, startDat
 	totalDays := int(end.Sub(start).Hours()/24) + 1
 	dayIdx := 0
 
-	// Iterate day by day to dodge Google's per-query cap on long ranges
-	// with high-cardinality dimensions [date,query,page,country,device].
-	// One day at a time keeps each request well under the 25k row limit.
+	// Two passes per day:
+	//
+	//   1. QP pass — dimensions [date, query, page, country, device]
+	//      (high cardinality, anonymised when too few impressions)
+	//   2. GEO pass — dimensions [date, country, device]
+	//      (lower cardinality, exhaustive totals NOT subject to per-query
+	//      anonymisation). Rows inserted with empty query/page so the
+	//      audit pipeline can compute exact 16-month totals via
+	//      `WHERE query='' AND page=''`.
+	//
+	// Iterating day by day keeps each request well under the 25k row limit.
 	for d := start; !d.After(end); d = d.AddDate(0, 0, 1) {
 		dayIdx++
 		dayStr := d.Format("2006-01-02")
-		startRow := int64(0)
 
+		// Pass 1 — QP (full dimensions)
+		startRow := int64(0)
 		for {
-			applog.Infof("gsc", "querying analytics day=%s (%d/%d) startRow=%d ...", dayStr, dayIdx, totalDays, startRow)
+			applog.Infof("gsc", "QP day=%s (%d/%d) startRow=%d ...", dayStr, dayIdx, totalDays, startRow)
 			req := &searchconsole.SearchAnalyticsQueryRequest{
 				StartDate:  dayStr,
 				EndDate:    dayStr,
@@ -176,12 +185,10 @@ func (c *Client) FetchSearchAnalytics(ctx context.Context, propertyURL, startDat
 				RowLimit:   rowLimit,
 				StartRow:   startRow,
 			}
-
 			resp, err := c.service.Searchanalytics.Query(propertyURL, req).Context(ctx).Do()
 			if err != nil {
-				return total, fmt.Errorf("querying search analytics (day=%s, startRow=%d): %w", dayStr, startRow, err)
+				return total, fmt.Errorf("querying QP (day=%s, startRow=%d): %w", dayStr, startRow, err)
 			}
-
 			var batch []AnalyticsRow
 			for _, row := range resp.Rows {
 				if len(row.Keys) < 5 {
@@ -200,14 +207,57 @@ func (c *Client) FetchSearchAnalytics(ctx context.Context, propertyURL, startDat
 				})
 			}
 			total += len(batch)
-			applog.Infof("gsc", "day=%s got %d rows (total so far: %d)", dayStr, len(batch), total)
-
+			applog.Infof("gsc", "QP day=%s got %d rows (total so far: %d)", dayStr, len(batch), total)
 			if onBatch != nil {
 				if err := onBatch(batch, total); err != nil {
 					return total, fmt.Errorf("batch callback: %w", err)
 				}
 			}
+			if len(resp.Rows) < int(rowLimit) {
+				break
+			}
+			startRow += rowLimit
+		}
 
+		// Pass 2 — GEO (no query/page, exhaustive totals)
+		startRow = 0
+		for {
+			applog.Infof("gsc", "GEO day=%s (%d/%d) startRow=%d ...", dayStr, dayIdx, totalDays, startRow)
+			req := &searchconsole.SearchAnalyticsQueryRequest{
+				StartDate:  dayStr,
+				EndDate:    dayStr,
+				Dimensions: []string{"date", "country", "device"},
+				RowLimit:   rowLimit,
+				StartRow:   startRow,
+			}
+			resp, err := c.service.Searchanalytics.Query(propertyURL, req).Context(ctx).Do()
+			if err != nil {
+				return total, fmt.Errorf("querying GEO (day=%s, startRow=%d): %w", dayStr, startRow, err)
+			}
+			var batch []AnalyticsRow
+			for _, row := range resp.Rows {
+				if len(row.Keys) < 3 {
+					continue
+				}
+				batch = append(batch, AnalyticsRow{
+					Date:        row.Keys[0],
+					Query:       "",
+					Page:        "",
+					Country:     row.Keys[1],
+					Device:      row.Keys[2],
+					Clicks:      int64(row.Clicks),
+					Impressions: int64(row.Impressions),
+					CTR:         row.Ctr,
+					Position:    row.Position,
+				})
+			}
+			total += len(batch)
+			applog.Infof("gsc", "GEO day=%s got %d rows (total so far: %d)", dayStr, len(batch), total)
+			if onBatch != nil {
+				if err := onBatch(batch, total); err != nil {
+					return total, fmt.Errorf("batch callback: %w", err)
+				}
+			}
 			if len(resp.Rows) < int(rowLimit) {
 				break
 			}
