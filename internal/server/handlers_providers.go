@@ -162,13 +162,24 @@ func (s *Server) handleProviderFetch(w http.ResponseWriter, r *http.Request) {
 	}
 	json.NewDecoder(r.Body).Decode(&body)
 	if len(body.DataTypes) == 0 {
-		body.DataTypes = []string{"metrics", "backlinks", "refdomains", "rankings", "visibility", "top_pages"}
+		// Default data types when the caller doesn't specify any.
+		// We skip "visibility" (HTTP 500 SEObserver-side) and "rankings"
+		// (organic_keywords endpoint is slow + Haloscan covers positions
+		// natively for free). The caller can still pass them explicitly
+		// via the request body when needed.
+		body.DataTypes = []string{"metrics", "backlinks", "refdomains", "top_pages"}
 	}
 
 	conn, err := s.keyStore.GetProviderConnection(projectID, provider)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "no provider connection for this project")
 		return
+	}
+	// For SEObserver, transparently fix the stored domain if it was inferred
+	// from the project name during auto-connect and the real root domain
+	// differs (e.g. "Singular" → "singular-is-future.com").
+	if provider == "seobserver" {
+		s.upgradeSEObserverDomainIfNeeded(projectID, conn)
 	}
 
 	key := s.providerFetchKey(projectID, provider)

@@ -56,66 +56,49 @@ func normaliseDomain(input string) string {
 	return d
 }
 
-// AutoSyncProjectData orchestrates the "no-click" data plane: when called for
-// a project, it ensures both SEObserver and Haloscan are populated without
-// the user lifting a finger.
+// AutoSyncProjectData orchestrates the "no-click" data plane for free
+// providers (Haloscan today). SEObserver is intentionally NOT auto-fetched
+// here — it consumes paid API units, so we leave the trigger manual via
+// the UI button on the SEObserver Data tab. The provider_connection is
+// still auto-created elsewhere (seobserverautoconnect.SyncProject) so the
+// user only has to click "Récupérer les données" once when they want the
+// netlinking data for an audit.
 //
-// SEObserver: triggers a background runProviderFetch for all data types if
-// the project has a connection (typically auto-created via seobserverautoconnect)
-// and no recent data — guarded by the existing 24h cache in runProviderFetch
-// so re-running this is cheap.
-//
-// Haloscan: triggers runHaloscanSync if a key is available and the project
-// has no Haloscan data yet. Re-runs are no-ops once data exists; the user can
-// always manually re-sync from the UI.
+// Domain corrections that used to happen here (SEObserver) are also moved
+// out — they only matter at fetch time and are now done inline in
+// handleProviderFetch when the user triggers the fetch manually.
 //
 // Safe to call repeatedly. Designed to run in the background.
 func (s *Server) AutoSyncProjectData(projectID, projectName string) {
-	go s.autoSyncSEObserver(projectID)
 	go s.autoSyncHaloscan(projectID, projectName)
 }
 
-func (s *Server) autoSyncSEObserver(projectID string) {
-	conn, err := s.keyStore.GetProviderConnection(projectID, "seobserver")
-	if err != nil || conn == nil || conn.APIKey == "" {
+// upgradeSEObserverDomainIfNeeded transparently fixes the stored domain on
+// the seobserver provider_connection when it was inferred from the project
+// name and the real root domain differs (e.g. "Singular" →
+// "singular-is-future.com"). Called by handleProviderFetch right before a
+// manual fetch so the user always hits the right domain.
+func (s *Server) upgradeSEObserverDomainIfNeeded(projectID string, conn *providers.ProviderConnection) {
+	if conn == nil {
 		return
 	}
-	// If the stored domain looks wrong (was inferred from project name, not
-	// the real root domain), upgrade it transparently with the resolved one
-	// before fetching. This fixes auto-connections created when the project
-	// name didn't match the real domain (e.g. "Singular" → "singular-is-future.com").
-	if real := s.resolveProjectDomain(projectID, conn.Domain); real != "" && real != normaliseDomain(conn.Domain) {
-		applog.Infof("autosync", "seobserver: upgrading domain for project %s: %q → %q", projectID, conn.Domain, real)
-		conn.Domain = real
-		_ = s.keyStore.SaveProviderConnection(&providers.ProviderConnection{
-			ID:              conn.ID,
-			ProjectID:       conn.ProjectID,
-			Provider:        conn.Provider,
-			Domain:          real,
-			APIKey:          conn.APIKey,
-			LimitBacklinks:  conn.LimitBacklinks,
-			LimitRefdomains: conn.LimitRefdomains,
-			LimitRankings:   conn.LimitRankings,
-			LimitTopPages:   conn.LimitTopPages,
-		})
+	real := s.resolveProjectDomain(projectID, conn.Domain)
+	if real == "" || real == normaliseDomain(conn.Domain) {
+		return
 	}
-	key := s.providerFetchKey(projectID, "seobserver")
-
-	s.providerFetchMu.Lock()
-	if s.providerFetchStatus == nil {
-		s.providerFetchStatus = make(map[string]*providerFetchStatus)
-	}
-	if existing := s.providerFetchStatus[key]; existing != nil && existing.Fetching {
-		s.providerFetchMu.Unlock()
-		return // already fetching
-	}
-	ctx, cancel := context.WithCancel(context.Background())
-	s.providerFetchStatus[key] = &providerFetchStatus{Fetching: true, Phase: "starting", cancel: cancel}
-	s.providerFetchMu.Unlock()
-
-	dataTypes := []string{"metrics", "backlinks", "refdomains", "rankings", "visibility", "top_pages"}
-	applog.Infof("autosync", "seobserver fetch start project=%s domain=%s", projectID, conn.Domain)
-	s.runProviderFetch(ctx, cancel, projectID, "seobserver", conn, dataTypes, false, key)
+	applog.Infof("seobserver", "upgrading domain for project %s: %q → %q", projectID, conn.Domain, real)
+	conn.Domain = real
+	_ = s.keyStore.SaveProviderConnection(&providers.ProviderConnection{
+		ID:              conn.ID,
+		ProjectID:       conn.ProjectID,
+		Provider:        conn.Provider,
+		Domain:          real,
+		APIKey:          conn.APIKey,
+		LimitBacklinks:  conn.LimitBacklinks,
+		LimitRefdomains: conn.LimitRefdomains,
+		LimitRankings:   conn.LimitRankings,
+		LimitTopPages:   conn.LimitTopPages,
+	})
 }
 
 func (s *Server) autoSyncHaloscan(projectID, projectName string) {
