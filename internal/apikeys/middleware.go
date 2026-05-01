@@ -58,7 +58,7 @@ func Authenticate(keyStore *Store, basicUser, basicPass string) func(http.Handle
 				}
 			}
 
-			w.Header().Set("WWW-Authenticate", `Basic realm="CrawlObserver"`)
+			w.Header().Set("WWW-Authenticate", `Basic realm="SeeseoCrawler"`)
 			http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
 		})
 	}

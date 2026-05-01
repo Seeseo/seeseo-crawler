@@ -12,6 +12,8 @@
   import { pushURL } from '../router.js';
   import { t } from '../i18n/index.svelte.js';
   import GSCTab from './GSCTab.svelte';
+  import EvolutionTab from './EvolutionTab.svelte';
+  import HaloscanTab from './HaloscanTab.svelte';
   import ProvidersTab from './ProvidersTab.svelte';
   import ConfirmModal from './ConfirmModal.svelte';
 
@@ -223,8 +225,18 @@
   >
   <button
     class="tab"
+    class:tab-active={projectTab === 'evolution'}
+    onclick={() => switchProjectTab('evolution')}>Évolution</button
+  >
+  <button
+    class="tab"
     class:tab-active={projectTab === 'gsc'}
     onclick={() => switchProjectTab('gsc')}>{t('project.searchConsole')}</button
+  >
+  <button
+    class="tab"
+    class:tab-active={projectTab === 'haloscan'}
+    onclick={() => switchProjectTab('haloscan')}>Haloscan</button
   >
   {#each providerConnections as conn}
     {@const meta = providerMeta[conn.provider]}
@@ -360,12 +372,20 @@
         </button>
       </div>
     {/if}
+  {:else if projectTab === 'evolution'}
+    <EvolutionTab {project} />
   {:else if projectTab === 'gsc'}
     <GSCTab
       projectId={project.id}
       initialSubView={gscSubView}
       onerror={(msg) => onerror?.(msg)}
       onpushurl={(u) => onpushurl?.(u)}
+    />
+  {:else if projectTab === 'haloscan'}
+    <HaloscanTab
+      projectId={project.id}
+      projectName={project.name}
+      onerror={(msg) => onerror?.(msg)}
     />
   {:else if projectTab.startsWith('provider:')}
     <ProvidersTab

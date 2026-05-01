@@ -251,9 +251,11 @@
               >{t('common.stop')}</button
             >
           {:else}
-            <button class="btn btn-sm" onclick={() => onresume?.(s.ID)}
-              >{t('sessions.resume')}</button
-            >
+            {#if s.Status !== 'completed'}
+              <button class="btn btn-sm" onclick={() => onresume?.(s.ID)}
+                >{t('sessions.resume')}</button
+              >
+            {/if}
             <button
               class="btn-ghost btn-delete-icon"
               onclick={() => ondelete?.(s.ID)}

@@ -88,7 +88,7 @@ func TestTLSProfileCloudflare(t *testing.T) {
 		profile TLSProfile
 		ua      string
 	}{
-		{"default-ua", "", "CrawlObserver/1.0"},
+		{"default-ua", "", "SeeseoCrawler/1.0"},
 		{"chrome-ua-no-tls", "", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"},
 		{"chrome-ua-chrome-tls", TLSChrome, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"},
 	}
@@ -160,7 +160,7 @@ func TestTLSProfileDiscoverSitemaps(t *testing.T) {
 		profile TLSProfile
 		ua      string
 	}{
-		{"default", "", "CrawlObserver/1.0"},
+		{"default", "", "SeeseoCrawler/1.0"},
 		{"chrome", TLSChrome, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"},
 	}
 

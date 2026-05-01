@@ -95,6 +95,20 @@ func (s *Store) InsertGSCAnalytics(ctx context.Context, projectID string, rows [
 	return batch.Send()
 }
 
+// HasGSCData reports whether any GSC analytics row already exists for the
+// given project. Used by the auto-fetch trigger to decide between a 16-month
+// initial backfill and a 30-day incremental refresh.
+func (s *Store) HasGSCData(ctx context.Context, projectID string) (bool, error) {
+	var n uint64
+	err := s.conn.QueryRow(ctx,
+		`SELECT count() FROM crawlobserver.gsc_analytics WHERE project_id = ? LIMIT 1`,
+		projectID).Scan(&n)
+	if err != nil {
+		return false, err
+	}
+	return n > 0, nil
+}
+
 // GSCAnalyticsInsertRow is the input row for batch inserts.
 type GSCAnalyticsInsertRow struct {
 	Date        time.Time

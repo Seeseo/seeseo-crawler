@@ -18,6 +18,8 @@ import (
 	"github.com/SEObserver/crawlobserver/internal/backup"
 	chmanaged "github.com/SEObserver/crawlobserver/internal/clickhouse"
 	"github.com/SEObserver/crawlobserver/internal/config"
+	"github.com/SEObserver/crawlobserver/internal/gscluckysync"
+	"github.com/SEObserver/crawlobserver/internal/seobserverautoconnect"
 	"github.com/SEObserver/crawlobserver/internal/server"
 	"github.com/SEObserver/crawlobserver/internal/storage"
 	"github.com/SEObserver/crawlobserver/internal/telemetry"
@@ -86,7 +88,7 @@ func runGUI(cmd *cobra.Command, args []string) error {
 
 	serverURL := fmt.Sprintf("http://127.0.0.1:%d", guiPort)
 
-	appName := "CrawlObserver"
+	appName := "SeeseoCrawler"
 	if cfg.Theme.AppName != "" {
 		appName = cfg.Theme.AppName
 	}
@@ -141,10 +143,32 @@ func runGUI(cmd *cobra.Command, args []string) error {
 				return fmt.Errorf("opening SQLite store: %w", err)
 			}
 
+			// Auto-sync GSC connections from mcp-gsc-lucky if present.
+			go func() {
+				if _, err := gscluckysync.Sync(ks, &cfg.GSC); err != nil {
+					applog.Errorf("cli", "gsc-lucky sync at startup failed: %v", err)
+				}
+			}()
+			// Auto-connect SEObserver for every project when a global API key is configured.
+			go func() {
+				if _, err := seobserverautoconnect.Sync(ks, &cfg.SEObserver); err != nil {
+					applog.Errorf("cli", "seobserver auto-connect at startup failed: %v", err)
+				}
+			}()
+
 			// Transition: wire store, keyStore, manager — server leaves setup mode
 			httpSrv.TransitionToReady(s, ks)
 			applog.Init(s)
 			httpSrv.SetDownloadProgress(server.SetupProgress{Percent: 100})
+
+			// "No-click" data plane: kick off SEObserver fetch + Haloscan sync
+			// for every project that's missing data. Runs after TransitionToReady
+			// so the store is wired. Each provider is rate-limited internally.
+			go func() {
+				// Small delay to let the auto-connect goroutines above land first.
+				time.Sleep(2 * time.Second)
+				httpSrv.AutoSyncAllProjects()
+			}()
 
 			// Wire backup options
 			chDataDir := cfg.ClickHouse.DataDir
@@ -388,13 +412,13 @@ func findFreePort() (int, error) {
 	return port, nil
 }
 
-// appDataDir returns ~/Library/Application Support/CrawlObserver (macOS) or equivalent,
+// appDataDir returns ~/Library/Application Support/SeeseoCrawler (macOS) or equivalent,
 // creating it if needed.
 func appDataDir() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
 	}
-	dir := filepath.Join(home, "Library", "Application Support", "CrawlObserver")
+	dir := filepath.Join(home, "Library", "Application Support", "SeeseoCrawler")
 	return dir, os.MkdirAll(dir, 0755)
 }

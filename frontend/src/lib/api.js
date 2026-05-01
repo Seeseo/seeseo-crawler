@@ -114,19 +114,32 @@ const SSE_MAX_RETRIES = 10;
  * @returns {Promise<any>}
  */
 async function fetchJSON(path, options = {}) {
-  const res = await fetch(`${BASE}${path}`, options);
-  if (!res.ok) {
-    let errorMessage;
-    try {
-      errorMessage = (await res.json()).error;
-    } catch {
-      errorMessage = await res.text().catch(() => res.statusText);
+  // Retry on 503 "server is starting up" while the backend is still in setup
+  // mode (ClickHouse warming up). Backend transitions to ready within seconds
+  // on cached installs, so a few short retries cover the race.
+  const isGet = !options.method || options.method.toUpperCase() === 'GET';
+  const maxRetries = isGet ? 10 : 0;
+  let attempt = 0;
+  while (true) {
+    const res = await fetch(`${BASE}${path}`, options);
+    if (res.status === 503 && attempt < maxRetries) {
+      attempt++;
+      await new Promise((r) => setTimeout(r, 500));
+      continue;
     }
-    throw new Error(errorMessage || `API error: ${res.status}`);
+    if (!res.ok) {
+      let errorMessage;
+      try {
+        errorMessage = (await res.json()).error;
+      } catch {
+        errorMessage = await res.text().catch(() => res.statusText);
+      }
+      throw new Error(errorMessage || `API error: ${res.status}`);
+    }
+    const text = await res.text();
+    if (!text) return null;
+    return JSON.parse(text);
   }
-  const text = await res.text();
-  if (!text) return null;
-  return JSON.parse(text);
 }
 
 /** @returns {Promise<Session[]>} */
@@ -587,6 +600,15 @@ export async function deleteProject(id) {
 
 export async function deleteProjectWithSessions(id) {
   return fetchJSON(`/projects/${id}/with-sessions`, { method: 'DELETE' });
+}
+
+/**
+ * Évolution multi-sessions d'un projet : points chronologiques avec métriques par session.
+ * @param {string} projectId
+ * @returns {Promise<{project_id: string, points: Array}>}
+ */
+export async function getProjectEvolution(projectId) {
+  return fetchJSON(`/projects/${projectId}/evolution`);
 }
 
 /**
@@ -1698,4 +1720,44 @@ export async function getURLDirectories(sessionId, depth = 2, minPages = 1) {
  */
 export async function getURLHosts(sessionId) {
   return fetchJSON(`/sessions/${sessionId}/url-hosts`);
+}
+
+// ============================================================================
+// Haloscan
+// ============================================================================
+
+export async function getHaloscanStatus(projectId) {
+  return fetchJSON(`/projects/${projectId}/haloscan/status`);
+}
+
+export async function syncHaloscan(projectId, opts = {}) {
+  return fetchJSON(`/projects/${projectId}/haloscan/sync`, {
+    method: 'POST',
+    body: JSON.stringify({
+      domain: opts.domain || '',
+      position_max: opts.positionMax || 100,
+    }),
+  });
+}
+
+export async function getHaloscanOverview(projectId) {
+  return fetchJSON(`/projects/${projectId}/haloscan/overview`);
+}
+
+export async function getHaloscanPositions(projectId, limit = 5000, positionMax = 100) {
+  return fetchJSON(
+    `/projects/${projectId}/haloscan/positions?limit=${limit}&position_max=${positionMax}`,
+  );
+}
+
+export async function getHaloscanCompetitors(projectId, limit = 20) {
+  return fetchJSON(`/projects/${projectId}/haloscan/competitors?limit=${limit}`);
+}
+
+export async function getHaloscanTrends(projectId) {
+  return fetchJSON(`/projects/${projectId}/haloscan/trends`);
+}
+
+export async function getHaloscanGap(projectId, mode = 'missing', limit = 500) {
+  return fetchJSON(`/projects/${projectId}/haloscan/gap?mode=${mode}&limit=${limit}`);
 }

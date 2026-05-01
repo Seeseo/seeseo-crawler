@@ -6,7 +6,7 @@ Be respectful. Be constructive. Don't waste other people's time.
 
 ## Longer Version
 
-CrawlObserver is maintained by [SEObserver](https://www.seobserver.com) and open to contributions from everyone. We expect participants to:
+SeeseoCrawler is maintained by [SEObserver](https://www.seobserver.com) and open to contributions from everyone. We expect participants to:
 
 - **Be respectful.** Disagreement is fine. Personal attacks, insults, and trolling are not. Critique code, not people.
 - **Be constructive.** If you open an issue saying "this is broken", include steps to reproduce. If you review a PR, explain *why* something should change, not just that it should.
@@ -26,4 +26,4 @@ Instances of unacceptable behavior can be reported to **contact@crawlobserver.co
 
 ## Scope
 
-This code of conduct applies to all project spaces: GitHub issues, pull requests, discussions, and any other channel associated with CrawlObserver.
+This code of conduct applies to all project spaces: GitHub issues, pull requests, discussions, and any other channel associated with SeeseoCrawler.

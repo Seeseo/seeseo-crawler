@@ -1,5 +1,5 @@
 <p align="center">
-  <h1 align="center">CrawlObserver</h1>
+  <h1 align="center">SeeseoCrawler</h1>
   <p align="center">
     Free, open-source SEO crawler built by <a href="https://www.seobserver.com">SEObserver</a>.<br>
     Extract 45+ SEO signals per page. Query millions of pages in milliseconds.
@@ -24,14 +24,14 @@
 </p>
 
 <p align="center">
-  <img src="demo.gif" alt="CrawlObserver Web UI" width="900">
+  <img src="demo.gif" alt="SeeseoCrawler Web UI" width="900">
 </p>
 
 ---
 
-## Why CrawlObserver?
+## Why SeeseoCrawler?
 
-At [SEObserver](https://www.seobserver.com), we crawl billions of pages. We built CrawlObserver because every SEO deserves a proper crawler — one that stores data in a columnar database and lets you query millions of pages in milliseconds, even while the crawl is ongoing.
+At [SEObserver](https://www.seobserver.com), we crawl billions of pages. We built SeeseoCrawler because every SEO deserves a proper crawler — one that stores data in a columnar database and lets you query millions of pages in milliseconds, even while the crawl is ongoing.
 
 **We're giving it to the community for free.** Use it, break it, improve it.
 
@@ -54,14 +54,14 @@ curl -fsSL crawlobserver.com/install.sh | sh
 ./crawlobserver
 ```
 
-That's it. Open `http://127.0.0.1:8899` — the setup wizard guides you through the rest. CrawlObserver downloads and manages its own database on first run.
+That's it. Open `http://127.0.0.1:8899` — the setup wizard guides you through the rest. SeeseoCrawler downloads and manages its own database on first run.
 
 > **macOS desktop app:** download the DMG from the [latest release](https://github.com/SEObserver/crawlobserver/releases/latest).
 
 <details>
 <summary><strong>Windows</strong></summary>
 
-ClickHouse does not provide a native Windows binary, so CrawlObserver needs Docker to run the database:
+ClickHouse does not provide a native Windows binary, so SeeseoCrawler needs Docker to run the database:
 
 1. Install [Docker Desktop](https://docs.docker.com/desktop/setup/install/windows-install/) (free)
 2. Download `crawlobserver-windows-amd64.exe` from the [latest release](https://github.com/SEObserver/crawlobserver/releases/latest)
@@ -88,7 +88,7 @@ make build
 
 </details>
 
-> **Advanced:** You can also point CrawlObserver at an existing database instance (Docker, remote server...). See the [Configuration](#configuration) section for `clickhouse.*` settings.
+> **Advanced:** You can also point SeeseoCrawler at an existing database instance (Docker, remote server...). See the [Configuration](#configuration) section for `clickhouse.*` settings.
 
 ---
 
@@ -181,7 +181,7 @@ All settings can be overridden via **environment variables** with the `CRAWLOBSE
 | `crawler.max_pages` | `0` | Max pages to crawl (0 = unlimited) |
 | `crawler.max_depth` | `0` | Max crawl depth (0 = unlimited) |
 | `crawler.timeout` | `30s` | HTTP request timeout |
-| `crawler.user_agent` | `CrawlObserver/1.0` | User-Agent string |
+| `crawler.user_agent` | `SeeseoCrawler/1.0` | User-Agent string |
 | `crawler.respect_robots` | `true` | Obey robots.txt |
 | `crawler.store_html` | `false` | Store raw HTML (ZSTD compressed) |
 | `crawler.crawl_scope` | `host` | `host`, `domain` (eTLD+1), or `subdirectory` |
@@ -230,14 +230,14 @@ A crawl is a link graph, so why not a graph database? Because **a crawler is an 
 
 When we need graph algorithms (PageRank, crawl depth), we compute them in-memory in Go and write the results back. A million-page link graph fits in ~200MB of RAM and computes in seconds — no need for a graph database.
 
-Under the hood, CrawlObserver uses ClickHouse in managed mode: it downloads a static binary and runs it as a subprocess. You see one program; it gets concurrent read/write access, columnar compression (~10:1), and instant session deletion.
+Under the hood, SeeseoCrawler uses ClickHouse in managed mode: it downloads a static binary and runs it as a subprocess. You see one program; it gets concurrent read/write access, columnar compression (~10:1), and instant session deletion.
 
 </details>
 
 <details>
 <summary><strong>How internal PageRank works</strong></summary>
 
-CrawlObserver computes PageRank in-memory using the iterative power method (damping factor 0.85, up to 20 iterations, 1e-6 convergence threshold). The result is normalized to a 0&ndash;100 logarithmic scale.
+SeeseoCrawler computes PageRank in-memory using the iterative power method (damping factor 0.85, up to 20 iterations, 1e-6 convergence threshold). The result is normalized to a 0&ndash;100 logarithmic scale.
 
 **Key modeling choices:**
 
@@ -253,7 +253,7 @@ CrawlObserver computes PageRank in-memory using the iterative power method (damp
 
 6. **Logarithmic scale.** The final 0&ndash;100 normalization uses `log1p(linear) / log1p(100) * 100` instead of a linear scale. This spreads the distribution so that smaller pages are more differentiated (a page at 10% of the max scores ~52 instead of 10, a page at 1% scores ~15 instead of 1). The maximum remains 100.
 
-These choices mean that CrawlObserver's internal PageRank is conservative: pages that link heavily to external sites or use nofollow on internal links will show lower PR flow than a naive internal-only model would suggest. We believe this better reflects how search engines handle link equity.
+These choices mean that SeeseoCrawler's internal PageRank is conservative: pages that link heavily to external sites or use nofollow on internal links will show lower PR flow than a naive internal-only model would suggest. We believe this better reflects how search engines handle link equity.
 
 </details>
 
@@ -338,7 +338,7 @@ We welcome contributions. Please read **[CONTRIBUTING.md](CONTRIBUTING.md)** bef
 
 ## Acknowledgments
 
-Thanks to the people who helped shape CrawlObserver with their feedback, testing, and ideas:
+Thanks to the people who helped shape SeeseoCrawler with their feedback, testing, and ideas:
 
 - **Fabien Raquidel** &mdash; [referenceur-web.pro](https://www.referenceur-web.pro/) · [@fabienr34](https://x.com/fabienr34)
 - **Jean-Benoît Moingt** &mdash; [watussi.fr](https://www.watussi.fr/) · [@jeanbenoit](https://x.com/jeanbenoit)

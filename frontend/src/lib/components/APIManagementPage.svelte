@@ -325,7 +325,7 @@
 
   function buildRefMarkdown() {
     const base = serverInfo?.api_url || 'http://localhost:9090/api';
-    let md = `# CrawlObserver REST API\n\nBase URL: ${base}\n`;
+    let md = `# SeeseoCrawler REST API\n\nBase URL: ${base}\n`;
     if (serverInfo?.has_auth) {
       md += `Auth: Basic auth (user: ${serverInfo.username}) or X-API-Key header\n`;
     }

@@ -22,6 +22,8 @@ type Config struct {
 	Server        ServerConfig     `mapstructure:"server"`
 	Theme         ThemeConfig      `mapstructure:"theme"`
 	GSC           GSCConfig           `mapstructure:"gsc"`
+	Haloscan      HaloscanConfig      `mapstructure:"haloscan"`
+	SEObserver    SEObserverConfig    `mapstructure:"seobserver"`
 	Interlinking  InterlinkingConfig  `mapstructure:"interlinking"`
 	Backup        BackupConfig        `mapstructure:"backup"`
 	Telemetry     TelemetryConfig     `mapstructure:"telemetry"`
@@ -179,6 +181,22 @@ type GSCConfig struct {
 	RedirectURI  string `mapstructure:"redirect_uri"`
 }
 
+// HaloscanConfig holds the API credentials for the Haloscan SEO platform.
+// If APIKey is empty, the server falls back to the HALOSCAN_API_KEY env var,
+// then to ~/Library/Application Support/Claude/claude_desktop_config.json
+// (where the haloscan-lucky MCP keeps it).
+type HaloscanConfig struct {
+	APIKey string `mapstructure:"api_key"`
+}
+
+// SEObserverConfig holds a global API key for the SEObserver provider.
+// When set, every project gets an auto-created provider_connection on
+// startup (and on project creation), so backlinks/metrics work natively
+// without manual per-project configuration.
+type SEObserverConfig struct {
+	APIKey string `mapstructure:"api_key"`
+}
+
 type BackupConfig struct {
 	Enabled  bool   `mapstructure:"enabled"`
 	Interval string `mapstructure:"interval"` // duration string: "6h", "12h", "24h"
@@ -192,7 +210,7 @@ func SetDefaults() {
 	viper.SetDefault("crawler.max_pages", 0)
 	viper.SetDefault("crawler.max_depth", 0)
 	viper.SetDefault("crawler.timeout", "30s")
-	viper.SetDefault("crawler.user_agent", "CrawlObserver/1.0")
+	viper.SetDefault("crawler.user_agent", "SeeseoCrawler/1.0")
 	viper.SetDefault("crawler.max_body_size", 10*1024*1024) // 10MB
 	viper.SetDefault("crawler.respect_robots", true)
 	viper.SetDefault("crawler.store_html", false)
@@ -243,10 +261,10 @@ func SetDefaults() {
 	viper.SetDefault("server.rate_limit.burst", 20)
 	viper.SetDefault("server.rate_limit.auth_requests_per_minute", 20)
 
-	viper.SetDefault("theme.app_name", "CrawlObserver")
+	viper.SetDefault("theme.app_name", "SeeseoCrawler")
 	viper.SetDefault("theme.logo_url", "")
 	viper.SetDefault("theme.accent_color", "#7c3aed")
-	viper.SetDefault("theme.mode", "light")
+	viper.SetDefault("theme.mode", "dark")
 
 	viper.SetDefault("interlinking.similarity_threshold", 0.3)
 	viper.SetDefault("interlinking.max_opportunities", 1000)
@@ -269,8 +287,8 @@ func SetDefaults() {
 	viper.SetDefault("telemetry.asked_at", "")
 	viper.SetDefault("telemetry.session_recording", false)
 
-	viper.SetDefault("announcements.enabled", true)
-	viper.SetDefault("announcements.feed_url", "https://crawlobserver.com/announcements/feed.json")
+	viper.SetDefault("announcements.enabled", false)
+	viper.SetDefault("announcements.feed_url", "")
 	viper.SetDefault("announcements.poll_interval", "10m")
 
 	viper.SetDefault("setup_complete", false)
@@ -378,9 +396,9 @@ func isWeakPassword(password string) bool {
 }
 
 // DefaultDataDir returns the platform-specific application data directory.
-// macOS: ~/Library/Application Support/CrawlObserver
+// macOS: ~/Library/Application Support/SeeseoCrawler
 // Linux: ~/.local/share/crawlobserver
-// Windows: %APPDATA%/CrawlObserver
+// Windows: %APPDATA%/SeeseoCrawler
 func DefaultDataDir() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -388,12 +406,12 @@ func DefaultDataDir() (string, error) {
 	}
 	switch runtime.GOOS {
 	case "darwin":
-		return filepath.Join(home, "Library", "Application Support", "CrawlObserver"), nil
+		return filepath.Join(home, "Library", "Application Support", "SeeseoCrawler"), nil
 	case "windows":
 		if appData := os.Getenv("APPDATA"); appData != "" {
-			return filepath.Join(appData, "CrawlObserver"), nil
+			return filepath.Join(appData, "SeeseoCrawler"), nil
 		}
-		return filepath.Join(home, "AppData", "Roaming", "CrawlObserver"), nil
+		return filepath.Join(home, "AppData", "Roaming", "SeeseoCrawler"), nil
 	default:
 		return filepath.Join(home, ".local", "share", "crawlobserver"), nil
 	}

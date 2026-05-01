@@ -15,8 +15,8 @@ func TestDefaultDataDir(t *testing.T) {
 
 	switch runtime.GOOS {
 	case "darwin":
-		if filepath.Base(dir) != "CrawlObserver" {
-			t.Errorf("darwin: expected CrawlObserver dir, got %q", dir)
+		if filepath.Base(dir) != "SeeseoCrawler" {
+			t.Errorf("darwin: expected SeeseoCrawler dir, got %q", dir)
 		}
 	case "linux":
 		if filepath.Base(dir) != "crawlobserver" {

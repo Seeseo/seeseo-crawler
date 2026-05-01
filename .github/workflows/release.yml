@@ -95,11 +95,11 @@ jobs:
       - name: Build desktop binary (universal)
         run: |
           LDFLAGS="-X github.com/SEObserver/crawlobserver/internal/updater.Version=${{ github.ref_name }}"
-          GOARCH=arm64 CGO_ENABLED=1 go build -tags desktop -ldflags "$LDFLAGS" -o CrawlObserver-arm64 ./cmd/crawlobserver
+          GOARCH=arm64 CGO_ENABLED=1 go build -tags desktop -ldflags "$LDFLAGS" -o SeeseoCrawler-arm64 ./cmd/crawlobserver
           GOARCH=amd64 CGO_ENABLED=1 CGO_CFLAGS="-arch x86_64" CGO_LDFLAGS="-arch x86_64" \
-            go build -tags desktop -ldflags "$LDFLAGS" -o CrawlObserver-amd64 ./cmd/crawlobserver
-          lipo -create -output CrawlObserver CrawlObserver-arm64 CrawlObserver-amd64
-          rm CrawlObserver-arm64 CrawlObserver-amd64
+            go build -tags desktop -ldflags "$LDFLAGS" -o SeeseoCrawler-amd64 ./cmd/crawlobserver
+          lipo -create -output SeeseoCrawler SeeseoCrawler-arm64 SeeseoCrawler-amd64
+          rm SeeseoCrawler-arm64 SeeseoCrawler-amd64
 
       - name: Free disk space before DMG
         run: |
@@ -109,11 +109,11 @@ jobs:
 
       - name: Create .app bundle
         run: |
-          BUNDLE="CrawlObserver.app"
+          BUNDLE="SeeseoCrawler.app"
           mkdir -p "${BUNDLE}/Contents/MacOS" "${BUNDLE}/Contents/Resources"
           cp build/darwin/Info.plist "${BUNDLE}/Contents/Info.plist"
-          cp CrawlObserver "${BUNDLE}/Contents/MacOS/CrawlObserver"
-          chmod +x "${BUNDLE}/Contents/MacOS/CrawlObserver"
+          cp SeeseoCrawler "${BUNDLE}/Contents/MacOS/SeeseoCrawler"
+          chmod +x "${BUNDLE}/Contents/MacOS/SeeseoCrawler"
           cp build/darwin/iconfile.icns "${BUNDLE}/Contents/Resources/iconfile.icns"
 
       - name: Import code signing certificate
@@ -141,16 +141,16 @@ jobs:
           codesign --force --options runtime --deep \
             --entitlements build/darwin/entitlements.plist \
             --sign "Developer ID Application: Kevin Richard (48HGS54WHP)" \
-            CrawlObserver.app
-          codesign --verify --deep --strict CrawlObserver.app
+            SeeseoCrawler.app
+          codesign --verify --deep --strict SeeseoCrawler.app
 
       - name: Create DMG
         run: |
           mkdir -p dmg_staging
-          cp -R CrawlObserver.app dmg_staging/
+          cp -R SeeseoCrawler.app dmg_staging/
           ln -s /Applications dmg_staging/Applications
-          hdiutil create -volname "CrawlObserver" -srcfolder dmg_staging \
-            -ov -format UDZO "CrawlObserver-macOS.dmg"
+          hdiutil create -volname "SeeseoCrawler" -srcfolder dmg_staging \
+            -ov -format UDZO "SeeseoCrawler-macOS.dmg"
 
       - name: Sign DMG
         if: env.APPLE_CERTIFICATE_P12 != ''
@@ -158,7 +158,7 @@ jobs:
           APPLE_CERTIFICATE_P12: ${{ secrets.APPLE_CERTIFICATE_P12 }}
         run: |
           codesign --force --sign "Developer ID Application: Kevin Richard (48HGS54WHP)" \
-            "CrawlObserver-macOS.dmg"
+            "SeeseoCrawler-macOS.dmg"
 
       - name: Notarize DMG
         if: env.APPLE_CERTIFICATE_P12 != ''
@@ -168,9 +168,9 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
         run: |
-          xcrun notarytool submit "CrawlObserver-macOS.dmg" \
+          xcrun notarytool submit "SeeseoCrawler-macOS.dmg" \
             --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" --password "$APPLE_APP_PASSWORD" --wait
-          xcrun stapler staple "CrawlObserver-macOS.dmg"
+          xcrun stapler staple "SeeseoCrawler-macOS.dmg"
 
       - name: Cleanup keychain
         if: always()
@@ -180,15 +180,15 @@ jobs:
 
       - name: Create update archive
         run: |
-          tar -czf "CrawlObserver-macOS.app.tar.gz" CrawlObserver.app
+          tar -czf "SeeseoCrawler-macOS.app.tar.gz" SeeseoCrawler.app
 
       - name: Upload desktop artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: CrawlObserver-desktop
+          name: SeeseoCrawler-desktop
           path: |
-            CrawlObserver-macOS.dmg
-            CrawlObserver-macOS.app.tar.gz
+            SeeseoCrawler-macOS.dmg
+            SeeseoCrawler-macOS.app.tar.gz
 
   release:
     needs: [build, desktop]

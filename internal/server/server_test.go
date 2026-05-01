@@ -334,6 +334,50 @@ func (m *mockStore) GSCInspectionResults(_ context.Context, _ string, _, _ int) 
 func (m *mockStore) DeleteGSCData(_ context.Context, _ string) error {
 	return m.err
 }
+func (m *mockStore) HasGSCData(_ context.Context, _ string) (bool, error) {
+	return false, m.err
+}
+func (m *mockStore) ProjectEvolution(_ context.Context, _ string) ([]storage.SessionEvolutionPoint, error) {
+	return nil, m.err
+}
+
+// Haloscan mock methods
+func (m *mockStore) InsertHaloscanOverview(_ context.Context, _ storage.HaloscanOverviewRow) error {
+	return m.err
+}
+func (m *mockStore) InsertHaloscanPositions(_ context.Context, _, _ string, _ []storage.HaloscanPositionRow) error {
+	return m.err
+}
+func (m *mockStore) InsertHaloscanCompetitors(_ context.Context, _ []storage.HaloscanCompetitorRow) error {
+	return m.err
+}
+func (m *mockStore) InsertHaloscanVisibilityTrends(_ context.Context, _ []storage.HaloscanVisibilityTrendRow) error {
+	return m.err
+}
+func (m *mockStore) InsertHaloscanKeywordsDiff(_ context.Context, _ []storage.HaloscanKeywordsDiffRow) error {
+	return m.err
+}
+func (m *mockStore) DeleteHaloscanProjectData(_ context.Context, _ string) error {
+	return m.err
+}
+func (m *mockStore) GetHaloscanOverview(_ context.Context, _ string) (*storage.HaloscanOverview, error) {
+	return nil, m.err
+}
+func (m *mockStore) ListHaloscanPositions(_ context.Context, _ string, _ uint16, _ int) ([]storage.HaloscanPositionOut, error) {
+	return nil, m.err
+}
+func (m *mockStore) ListHaloscanCompetitors(_ context.Context, _ string, _ int) ([]storage.HaloscanCompetitorOut, error) {
+	return nil, m.err
+}
+func (m *mockStore) ListHaloscanTrends(_ context.Context, _ string) ([]storage.HaloscanTrendPoint, error) {
+	return nil, m.err
+}
+func (m *mockStore) ListHaloscanKeywordsDiff(_ context.Context, _, _ string, _ int) ([]storage.HaloscanKeywordsDiffOut, error) {
+	return nil, m.err
+}
+func (m *mockStore) HasHaloscanData(_ context.Context, _ string) (bool, error) {
+	return false, m.err
+}
 
 // Custom Tests mock methods
 func (m *mockStore) RunCustomTestsSQL(_ context.Context, _ string, rules []customtests.TestRule) (map[string]map[string]string, error) {
@@ -4960,8 +5004,8 @@ func TestBasicAuth_WWWAuthenticateRealm(t *testing.T) {
 	handler.ServeHTTP(rec, req)
 
 	wwwAuth := rec.Header().Get("WWW-Authenticate")
-	if wwwAuth != `Basic realm="CrawlObserver"` {
-		t.Errorf("expected realm CrawlObserver, got %q", wwwAuth)
+	if wwwAuth != `Basic realm="SeeseoCrawler"` {
+		t.Errorf("expected realm SeeseoCrawler, got %q", wwwAuth)
 	}
 }
 

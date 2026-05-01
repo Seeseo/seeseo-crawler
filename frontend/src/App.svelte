@@ -76,7 +76,7 @@
 
   // --- UI state ---
   let theme = $state({
-    app_name: 'CrawlObserver',
+    app_name: 'SeeseoCrawler',
     logo_url: '',
     accent_color: '#7c3aed',
     mode: 'light',

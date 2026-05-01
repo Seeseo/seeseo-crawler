@@ -68,11 +68,11 @@ describe('saveDarkMode', () => {
 
   it('saves true to localStorage', () => {
     saveDarkMode(true);
-    expect(localStorage.setItem).toHaveBeenCalledWith('darkMode', 'true');
+    expect(localStorage.setItem).toHaveBeenCalledWith('darkMode_v2', 'true');
   });
 
   it('saves false to localStorage', () => {
     saveDarkMode(false);
-    expect(localStorage.setItem).toHaveBeenCalledWith('darkMode', 'false');
+    expect(localStorage.setItem).toHaveBeenCalledWith('darkMode_v2', 'false');
   });
 });

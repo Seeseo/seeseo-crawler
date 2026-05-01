@@ -2,7 +2,7 @@
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in CrawlObserver, **do not open a public issue**.
+If you discover a security vulnerability in SeeseoCrawler, **do not open a public issue**.
 
 Email **security@crawlobserver.com** with:
 
@@ -26,7 +26,7 @@ We will acknowledge your report within **48 hours** and aim to provide a fix or 
 
 - Denial of service via large crawls (that's a configuration issue, not a vulnerability)
 - Missing rate limiting on localhost-only endpoints
-- Issues requiring physical access to the machine running CrawlObserver
+- Issues requiring physical access to the machine running SeeseoCrawler
 - Vulnerabilities in ClickHouse itself (report those upstream)
 
 ## Disclosure

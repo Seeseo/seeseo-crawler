@@ -1,4 +1,4 @@
-## CrawlObserver configuration
+## SeeseoCrawler configuration
 
 # Crawler settings
 crawler:
@@ -13,7 +13,7 @@ crawler:
   # Request timeout
   timeout: 30s
   # User-Agent string
-  user_agent: "CrawlObserver/1.0"
+  user_agent: "SeeseoCrawler/1.0"
   # Maximum response body size
   max_body_size: 10485760  # 10MB
   # Respect robots.txt
@@ -54,10 +54,10 @@ server:
 # Theme / branding
 theme:
   # Application name shown in sidebar
-  app_name: CrawlObserver
+  app_name: SeeseoCrawler
   # Logo URL (leave empty for default icon)
   logo_url: ""
   # Primary accent color (hex)
   accent_color: "#7c3aed"
-  # Color mode: "light" or "dark"
-  mode: light
+  # Color mode: "light", "dark" or "auto" (follow OS preference)
+  mode: dark

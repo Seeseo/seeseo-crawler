@@ -36,8 +36,8 @@ func TestExpectedAssetName(t *testing.T) {
 
 func TestExpectedDesktopAssetName(t *testing.T) {
 	name := ExpectedDesktopAssetName()
-	if !strings.HasPrefix(name, "CrawlObserver-") {
-		t.Errorf("expected prefix 'CrawlObserver-', got %q", name)
+	if !strings.HasPrefix(name, "SeeseoCrawler-") {
+		t.Errorf("expected prefix 'SeeseoCrawler-', got %q", name)
 	}
 	if !strings.HasSuffix(name, ".app.tar.gz") {
 		t.Errorf("expected suffix '.app.tar.gz', got %q", name)
@@ -322,14 +322,14 @@ func TestDownloadDesktopUpdate_Success(t *testing.T) {
 
 	// Add .app directory entry
 	tw.WriteHeader(&tar.Header{
-		Name:     "CrawlObserver.app/",
+		Name:     "SeeseoCrawler.app/",
 		Typeflag: tar.TypeDir,
 		Mode:     0755,
 	})
 	// Add a file inside
 	binaryContent := []byte("fake-macos-binary")
 	tw.WriteHeader(&tar.Header{
-		Name:     "CrawlObserver.app/Contents/MacOS/CrawlObserver",
+		Name:     "SeeseoCrawler.app/Contents/MacOS/SeeseoCrawler",
 		Typeflag: tar.TypeReg,
 		Mode:     0755,
 		Size:     int64(len(binaryContent)),
@@ -366,7 +366,7 @@ func TestDownloadDesktopUpdate_Success(t *testing.T) {
 	}
 
 	// Verify the extracted binary exists
-	binaryPath := filepath.Join(appPath, "Contents", "MacOS", "CrawlObserver")
+	binaryPath := filepath.Join(appPath, "Contents", "MacOS", "SeeseoCrawler")
 	data, err := os.ReadFile(binaryPath)
 	if err != nil {
 		t.Fatalf("reading extracted binary: %v", err)
@@ -436,16 +436,16 @@ func TestSelfUpdateDesktop_Success(t *testing.T) {
 	dir := t.TempDir()
 
 	// Create a fake current .app bundle
-	currentApp := filepath.Join(dir, "CrawlObserver.app")
+	currentApp := filepath.Join(dir, "SeeseoCrawler.app")
 	currentBinDir := filepath.Join(currentApp, "Contents", "MacOS")
 	os.MkdirAll(currentBinDir, 0755)
-	os.WriteFile(filepath.Join(currentBinDir, "CrawlObserver"), []byte("old"), 0755)
+	os.WriteFile(filepath.Join(currentBinDir, "SeeseoCrawler"), []byte("old"), 0755)
 
 	// Create a fake new .app bundle
-	newApp := filepath.Join(dir, "CrawlObserver-new.app")
+	newApp := filepath.Join(dir, "SeeseoCrawler-new.app")
 	newBinDir := filepath.Join(newApp, "Contents", "MacOS")
 	os.MkdirAll(newBinDir, 0755)
-	os.WriteFile(filepath.Join(newBinDir, "CrawlObserver"), []byte("new"), 0755)
+	os.WriteFile(filepath.Join(newBinDir, "SeeseoCrawler"), []byte("new"), 0755)
 
 	// Simulate the rename logic from SelfUpdateDesktop
 	backupPath := currentApp + ".bak"
@@ -459,7 +459,7 @@ func TestSelfUpdateDesktop_Success(t *testing.T) {
 	os.RemoveAll(backupPath)
 
 	// Verify new binary is in place
-	data, err := os.ReadFile(filepath.Join(currentBinDir, "CrawlObserver"))
+	data, err := os.ReadFile(filepath.Join(currentBinDir, "SeeseoCrawler"))
 	if err != nil {
 		t.Fatalf("reading binary: %v", err)
 	}

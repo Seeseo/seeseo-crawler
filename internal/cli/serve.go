@@ -15,6 +15,8 @@ import (
 	"github.com/SEObserver/crawlobserver/internal/applog"
 	"github.com/SEObserver/crawlobserver/internal/backup"
 	"github.com/SEObserver/crawlobserver/internal/config"
+	"github.com/SEObserver/crawlobserver/internal/gscluckysync"
+	"github.com/SEObserver/crawlobserver/internal/seobserverautoconnect"
 	"github.com/SEObserver/crawlobserver/internal/server"
 	"github.com/SEObserver/crawlobserver/internal/storage"
 	"github.com/SEObserver/crawlobserver/internal/telemetry"
@@ -66,6 +68,20 @@ func runServe(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("opening SQLite store: %w", err)
 	}
 	defer keyStore.Close()
+
+	// Auto-sync GSC connections from mcp-gsc-lucky if present.
+	// Silent no-op when the MCP file is missing. Runs in background to keep
+	// startup fast and to avoid blocking on filesystem I/O.
+	go func() {
+		if _, err := gscluckysync.Sync(keyStore, &cfg.GSC); err != nil {
+			applog.Errorf("cli", "gsc-lucky sync at startup failed: %v", err)
+		}
+	}()
+	go func() {
+		if _, err := seobserverautoconnect.Sync(keyStore, &cfg.SEObserver); err != nil {
+			applog.Errorf("cli", "seobserver auto-connect at startup failed: %v", err)
+		}
+	}()
 
 	srv := server.New(cfg, store, keyStore)
 	srv.UpdateStatus = updater.NewUpdateStatus()
@@ -227,6 +243,13 @@ func runServeSetupMode(cfg *config.Config) error {
 			applog.Errorf("cli", "SQLite store failed: %v", err)
 			return
 		}
+
+		// Auto-sync GSC connections from mcp-gsc-lucky on the deferred path.
+		go func() {
+			if _, err := gscluckysync.Sync(keyStore, &cfg.GSC); err != nil {
+				applog.Errorf("cli", "gsc-lucky sync at startup failed: %v", err)
+			}
+		}()
 
 		mu.Lock()
 		cleanupFn = func() {

@@ -1,6 +1,6 @@
-# Contributing to CrawlObserver
+# Contributing to SeeseoCrawler
 
-CrawlObserver is maintained by [SEObserver](https://www.seobserver.com) and open to community contributions. This document explains how to contribute effectively and what we expect from pull requests.
+SeeseoCrawler is maintained by [SEObserver](https://www.seobserver.com) and open to community contributions. This document explains how to contribute effectively and what we expect from pull requests.
 
 ## Ground Rules
 
@@ -122,7 +122,7 @@ frontend/
 
 ## What We Don't Accept
 
-- **Feature creep.** CrawlObserver crawls websites and extracts SEO signals. It's not a keyword tracker, a rank checker, or a backlink monitor. Stay focused.
+- **Feature creep.** SeeseoCrawler crawls websites and extracts SEO signals. It's not a keyword tracker, a rank checker, or a backlink monitor. Stay focused.
 - **Massive refactors without prior discussion.** If you want to restructure the project, open an issue and make the case first.
 - **Dependency bloat.** Think twice before adding a dependency. If it saves 10 lines of code, it's not worth the supply chain risk.
 - **Breaking changes to the API.** The REST API is used by other tools. Breaking changes need a deprecation path and a very good reason.

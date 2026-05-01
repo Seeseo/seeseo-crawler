@@ -65,7 +65,7 @@ func setup(t *testing.T) *testEnv {
 			MaxPages:        100,
 			Delay:           0,
 			Timeout:         10 * time.Second,
-			UserAgent:       "CrawlObserverE2ETest/1.0",
+			UserAgent:       "SeeseoCrawlerE2ETest/1.0",
 			MaxBodySize:     10 * 1024 * 1024,
 			RespectRobots:   true,
 			AllowPrivateIPs: true,
@@ -193,7 +193,7 @@ func startCrawl(t *testing.T, env *testEnv) string {
 		"max_pages": 50,
 		"workers": 4,
 		"delay": "0s",
-		"user_agent": "CrawlObserverE2ETest/1.0",
+		"user_agent": "SeeseoCrawlerE2ETest/1.0",
 		"check_external_links": %v,
 		"check_page_resources": %v
 	}`, env.siteURL+"/", checkExt, checkRes))

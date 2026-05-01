@@ -167,7 +167,7 @@ func (f *Fetcher) fetchOnce(ctx context.Context) {
 		return
 	}
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", "CrawlObserver/1.0 (+announcements)")
+	req.Header.Set("User-Agent", "SeeseoCrawler/1.0 (+announcements)")
 
 	resp, err := f.client.Do(req)
 	if err != nil {

@@ -1,10 +1,10 @@
 # Changelog
 
-All notable changes to CrawlObserver are documented here.
+All notable changes to SeeseoCrawler are documented here.
 
 ## Unreleased
 
-This is the initial open-source release of CrawlObserver by [SEObserver](https://www.seobserver.com).
+This is the initial open-source release of SeeseoCrawler by [SEObserver](https://www.seobserver.com).
 
 ### Crawler Engine
 - Concurrent crawl workers with per-host delay and robots.txt compliance

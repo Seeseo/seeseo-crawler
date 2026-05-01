@@ -5,11 +5,11 @@
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleName</key>
-    <string>CrawlObserver</string>
+    <string>SeeseoCrawler</string>
     <key>CFBundleExecutable</key>
-    <string>CrawlObserver</string>
+    <string>SeeseoCrawler</string>
     <key>CFBundleIdentifier</key>
-    <string>com.seobserver.crawlobserver</string>
+    <string>fr.seeseo.crawler</string>
     <key>CFBundleVersion</key>
     <string>1.0.0</string>
     <key>CFBundleShortVersionString</key>
@@ -21,7 +21,7 @@
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>NSHumanReadableCopyright</key>
-    <string>Copyright 2026 SEObserver</string>
+    <string>Copyright 2026 Seeseo</string>
     <key>NSAppTransportSecurity</key>
     <dict>
         <key>NSAllowsLocalNetworking</key>

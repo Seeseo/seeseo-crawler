@@ -25,6 +25,7 @@ type SessionStore interface {
 	SessionStorageStats(ctx context.Context) (map[string]uint64, error)
 	GlobalStats(ctx context.Context) ([]storage.GlobalSessionStats, *storage.StorageStatsResult, error)
 	SessionStats(ctx context.Context, sessionID string) (*storage.SessionStats, error)
+	ProjectEvolution(ctx context.Context, projectID string) ([]storage.SessionEvolutionPoint, error)
 }
 
 // PageStore handles reading and exploring crawled pages.
@@ -162,6 +163,7 @@ type GSCStore interface {
 	GSCTimeline(ctx context.Context, projectID string) ([]storage.GSCTimelineRow, error)
 	GSCInspectionResults(ctx context.Context, projectID string, limit, offset int) ([]storage.GSCInspectionRow, int, error)
 	DeleteGSCData(ctx context.Context, projectID string) error
+	HasGSCData(ctx context.Context, projectID string) (bool, error)
 }
 
 // ProviderStore handles third-party provider data (SEObserver, etc.).
@@ -193,12 +195,29 @@ type LogStore interface {
 	ExportLogs(ctx context.Context) ([]applog.LogRow, error)
 }
 
+// HaloscanStore handles persistence of Haloscan SEO platform data.
+type HaloscanStore interface {
+	InsertHaloscanOverview(ctx context.Context, row storage.HaloscanOverviewRow) error
+	InsertHaloscanPositions(ctx context.Context, projectID, domain string, rows []storage.HaloscanPositionRow) error
+	InsertHaloscanCompetitors(ctx context.Context, rows []storage.HaloscanCompetitorRow) error
+	InsertHaloscanVisibilityTrends(ctx context.Context, rows []storage.HaloscanVisibilityTrendRow) error
+	InsertHaloscanKeywordsDiff(ctx context.Context, rows []storage.HaloscanKeywordsDiffRow) error
+	DeleteHaloscanProjectData(ctx context.Context, projectID string) error
+	GetHaloscanOverview(ctx context.Context, projectID string) (*storage.HaloscanOverview, error)
+	ListHaloscanPositions(ctx context.Context, projectID string, positionMax uint16, limit int) ([]storage.HaloscanPositionOut, error)
+	ListHaloscanCompetitors(ctx context.Context, projectID string, limit int) ([]storage.HaloscanCompetitorOut, error)
+	ListHaloscanTrends(ctx context.Context, projectID string) ([]storage.HaloscanTrendPoint, error)
+	ListHaloscanKeywordsDiff(ctx context.Context, projectID, mode string, limit int) ([]storage.HaloscanKeywordsDiffOut, error)
+	HasHaloscanData(ctx context.Context, projectID string) (bool, error)
+}
+
 // StorageService is the full storage interface used by the HTTP server.
 // It composes domain-specific interfaces for clearer API boundaries.
 type StorageService interface {
 	CrawlStore
 	GSCStore
 	ProviderStore
+	HaloscanStore
 	LogStore
 }
 

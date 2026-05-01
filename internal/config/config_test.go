@@ -18,8 +18,8 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.Crawler.Workers != 10 {
 		t.Errorf("Workers = %d, want 10", cfg.Crawler.Workers)
 	}
-	if cfg.Crawler.UserAgent != "CrawlObserver/1.0" {
-		t.Errorf("UserAgent = %q, want CrawlObserver/1.0", cfg.Crawler.UserAgent)
+	if cfg.Crawler.UserAgent != "SeeseoCrawler/1.0" {
+		t.Errorf("UserAgent = %q, want SeeseoCrawler/1.0", cfg.Crawler.UserAgent)
 	}
 	if cfg.Crawler.MaxBodySize != 10*1024*1024 {
 		t.Errorf("MaxBodySize = %d, want 10MB", cfg.Crawler.MaxBodySize)
@@ -230,7 +230,7 @@ func TestIsWeakPassword(t *testing.T) {
 
 		// Case insensitive
 		{"PASSWORD uppercase", "PASSWORD", true},
-		{"CrawlObserver mixed", "CrawlObserver", true},
+		{"SeeseoCrawler mixed", "SeeseoCrawler", true},
 
 		// Strong passwords → not weak
 		{"strong with symbols", "MyStr0ng!Pass", false},

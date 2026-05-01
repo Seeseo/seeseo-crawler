@@ -233,6 +233,120 @@ func (s *Server) handleGSCFetch(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, map[string]string{"status": "fetching"})
 }
 
+// triggerGSCFetchAfterCrawl is called from handleStartCrawl when a crawl is
+// launched on a project that has a GSC connection. First crawl on a fresh
+// project (gsc_analytics empty) triggers a 16-month backfill — the GSC API
+// max — so audits can pull from a full year+ of search data right away.
+// Subsequent crawls trigger a 30-day incremental refresh, which is fast and
+// cheap (Google quota-wise) and keeps the freshest period in sync.
+//
+// Runs entirely in background. Silent no-op when the project has no GSC
+// connection or no property selected. Errors are logged but never surface
+// to the caller, since the crawl itself must not fail because of GSC.
+func (s *Server) triggerGSCFetchAfterCrawl(projectID string) {
+	if projectID == "" {
+		return
+	}
+	conn, err := s.keyStore.GetGSCConnection(projectID)
+	if err != nil || conn == nil || conn.PropertyURL == "" {
+		return // no GSC for this project — nothing to do
+	}
+
+	// Skip if a fetch is already running for this project.
+	s.gscFetchMu.Lock()
+	if s.gscFetchStatus == nil {
+		s.gscFetchStatus = make(map[string]*gscFetchStatus)
+	}
+	if existing := s.gscFetchStatus[projectID]; existing != nil && existing.Fetching {
+		s.gscFetchMu.Unlock()
+		applog.Infof("gsc", "auto-fetch skipped for project %s — already running", projectID)
+		return
+	}
+	s.gscFetchMu.Unlock()
+
+	hasData, err := s.store.HasGSCData(context.Background(), projectID)
+	if err != nil {
+		applog.Errorf("gsc", "auto-fetch HasGSCData failed for project %s: %v", projectID, err)
+		return
+	}
+
+	// 16 months on first run, 30-day incremental afterwards.
+	endDate := time.Now().AddDate(0, 0, -3).Format("2006-01-02")
+	var startDate string
+	mode := "incremental-30d"
+	if !hasData {
+		startDate = time.Now().AddDate(-1, -4, 0).Format("2006-01-02")
+		mode = "initial-16mo"
+	} else {
+		startDate = time.Now().AddDate(0, 0, -33).Format("2006-01-02")
+	}
+
+	client, newToken, err := gsc.NewClientFromTokens(context.Background(), &s.cfg.GSC, conn.AccessToken, conn.RefreshToken, conn.TokenExpiry)
+	if err != nil {
+		applog.Errorf("gsc", "auto-fetch token refresh failed for project %s: %v", projectID, err)
+		return
+	}
+	if newToken.AccessToken != conn.AccessToken {
+		conn.AccessToken = newToken.AccessToken
+		conn.TokenExpiry = newToken.Expiry
+		s.keyStore.SaveGSCConnection(conn)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	s.gscFetchMu.Lock()
+	s.gscFetchStatus[projectID] = &gscFetchStatus{Fetching: true, cancel: cancel}
+	s.gscFetchMu.Unlock()
+
+	go func() {
+		defer cancel()
+		defer func() {
+			if r := recover(); r != nil {
+				applog.Errorf("gsc", "auto-fetch PANIC for project %s: %v", projectID, r)
+				s.gscFetchMu.Lock()
+				s.gscFetchStatus[projectID] = &gscFetchStatus{Fetching: false, Error: fmt.Sprintf("panic: %v", r)}
+				s.gscFetchMu.Unlock()
+			}
+		}()
+		applog.Infof("gsc", "auto-fetch started [%s] for project %s, %s → %s", mode, projectID, startDate, endDate)
+
+		total, err := client.FetchSearchAnalytics(ctx, conn.PropertyURL, startDate, endDate,
+			func(rows []gsc.AnalyticsRow, totalSoFar int) error {
+				insertRows := make([]storage.GSCAnalyticsInsertRow, len(rows))
+				for i, r := range rows {
+					d, _ := time.Parse("2006-01-02", r.Date)
+					insertRows[i] = storage.GSCAnalyticsInsertRow{
+						Date:        d,
+						Query:       r.Query,
+						Page:        r.Page,
+						Country:     r.Country,
+						Device:      r.Device,
+						Clicks:      uint32(r.Clicks),
+						Impressions: uint32(r.Impressions),
+						CTR:         float32(r.CTR),
+						Position:    float32(r.Position),
+					}
+				}
+				if err := s.store.InsertGSCAnalytics(ctx, projectID, insertRows); err != nil {
+					return fmt.Errorf("inserting batch: %w", err)
+				}
+				s.gscFetchMu.Lock()
+				s.gscFetchStatus[projectID] = &gscFetchStatus{Fetching: true, RowsSoFar: totalSoFar}
+				s.gscFetchMu.Unlock()
+				return nil
+			})
+
+		s.gscFetchMu.Lock()
+		if err != nil {
+			applog.Errorf("gsc", "auto-fetch error [%s] for project %s: %v", mode, projectID, err)
+			s.gscFetchStatus[projectID] = &gscFetchStatus{Fetching: false, RowsSoFar: total, Error: err.Error()}
+		} else {
+			applog.Infof("gsc", "auto-fetch completed [%s] for project %s: %d rows", mode, projectID, total)
+			delete(s.gscFetchStatus, projectID)
+		}
+		s.gscFetchMu.Unlock()
+	}()
+}
+
 func (s *Server) handleGSCStopFetch(w http.ResponseWriter, r *http.Request) {
 	projectID := r.PathValue("id")
 	s.gscFetchMu.Lock()

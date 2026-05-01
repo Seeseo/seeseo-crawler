@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-APP_NAME="CrawlObserver"
+APP_NAME="SeeseoCrawler"
 BUNDLE="build/${APP_NAME}.app"
 
 echo "==> Building frontend..."

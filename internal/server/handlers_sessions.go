@@ -329,6 +329,14 @@ func (s *Server) handleStartCrawl(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Auto-trigger a GSC fetch if the project has a GSC connection.
+	// First crawl on a fresh project → 16-month backfill. Subsequent crawls
+	// → 30-day incremental refresh. Runs in background and never blocks the
+	// crawl itself.
+	if req.ProjectID != nil && *req.ProjectID != "" {
+		go s.triggerGSCFetchAfterCrawl(*req.ProjectID)
+	}
+
 	status := "started"
 	if s.manager.IsQueued(sessionID) {
 		status = "queued"

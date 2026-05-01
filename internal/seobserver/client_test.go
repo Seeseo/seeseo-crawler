@@ -31,8 +31,8 @@ func TestDoRequest_SetsUserAgent(t *testing.T) {
 	defer ts.Close()
 
 	c.get(context.Background(), "test")
-	if gotUA != "CrawlObserver-API/1.2.3" {
-		t.Errorf("got User-Agent %q, want %q", gotUA, "CrawlObserver-API/1.2.3")
+	if gotUA != "SeeseoCrawler-API/1.2.3" {
+		t.Errorf("got User-Agent %q, want %q", gotUA, "SeeseoCrawler-API/1.2.3")
 	}
 }
 

@@ -781,6 +781,11 @@ var Migrations = []Migration{
 	{Name: "alter pages v7 structured data", DDL: AlterPagesV7StructuredData},
 	{Name: "alter pages v8 cwv", DDL: AlterPagesV8CWV},
 	{Name: "create hreflang_issues", DDL: CreateHreflangIssues},
+	{Name: "create haloscan_overview", DDL: CreateHaloscanOverview},
+	{Name: "create haloscan_positions", DDL: CreateHaloscanPositions},
+	{Name: "create haloscan_competitors", DDL: CreateHaloscanCompetitors},
+	{Name: "create haloscan_visibility_trends", DDL: CreateHaloscanVisibilityTrends},
+	{Name: "create haloscan_keywords_diff", DDL: CreateHaloscanKeywordsDiff},
 }
 
 const AlterSessionsV3 = `
@@ -838,4 +843,111 @@ CREATE TABLE IF NOT EXISTS crawlobserver.hreflang_issues (
 ) ENGINE = ReplacingMergeTree(computed_at)
 PARTITION BY crawl_session_id
 ORDER BY (crawl_session_id, issue_type, source_url, target_url)
+`
+
+const CreateHaloscanOverview = `
+CREATE TABLE IF NOT EXISTS crawlobserver.haloscan_overview (
+    project_id String,
+    domain String,
+    visibility_index Float64,
+    total_keyword_count Int64,
+    top_10_positions Int64,
+    traffic_rank Int64,
+    keyword_count_rank Int64,
+    visibility_history String CODEC(ZSTD(3)),
+    positions_breakdown String CODEC(ZSTD(3)),
+    raw_metrics String CODEC(ZSTD(3)),
+    fetched_at DateTime64(3)
+) ENGINE = ReplacingMergeTree(fetched_at)
+PARTITION BY project_id
+ORDER BY (project_id, domain)
+`
+
+const CreateHaloscanPositions = `
+CREATE TABLE IF NOT EXISTS crawlobserver.haloscan_positions (
+    project_id String,
+    domain String,
+    keyword String,
+    url String,
+    position UInt16,
+    traffic Float64,
+    volume Float64,
+    cpc Float64,
+    competition Float64,
+    kvi Float64,
+    word_count UInt16,
+    si_info Bool,
+    si_nav Bool,
+    si_trans Bool,
+    si_comm Bool,
+    si_local Bool,
+    si_brand Bool,
+    page_first_seen Date,
+    last_scrap LowCardinality(String),
+    fetched_at DateTime64(3)
+) ENGINE = ReplacingMergeTree(fetched_at)
+PARTITION BY project_id
+ORDER BY (project_id, keyword, url)
+`
+
+const CreateHaloscanCompetitors = `
+CREATE TABLE IF NOT EXISTS crawlobserver.haloscan_competitors (
+    project_id String,
+    domain String,
+    competitor_domain String,
+    visibility_index Float64,
+    keywords Int64,
+    positions Int64,
+    common_keywords Int64,
+    missed_keywords Int64,
+    bested Int64,
+    exclusive_keywords Int64,
+    total_traffic Int64,
+    rank UInt16,
+    fetched_at DateTime64(3)
+) ENGINE = ReplacingMergeTree(fetched_at)
+PARTITION BY project_id
+ORDER BY (project_id, competitor_domain)
+`
+
+const CreateHaloscanVisibilityTrends = `
+CREATE TABLE IF NOT EXISTS crawlobserver.haloscan_visibility_trends (
+    project_id String,
+    series_domain String,
+    agg_date Date,
+    visibility_index Float64,
+    series_type LowCardinality(String),
+    fetched_at DateTime64(3)
+) ENGINE = ReplacingMergeTree(fetched_at)
+PARTITION BY project_id
+ORDER BY (project_id, series_domain, agg_date)
+`
+
+const CreateHaloscanKeywordsDiff = `
+CREATE TABLE IF NOT EXISTS crawlobserver.haloscan_keywords_diff (
+    project_id String,
+    domain String,
+    mode LowCardinality(String),
+    keyword String,
+    volume Float64,
+    kvi Float64,
+    cpc Float64,
+    best_reference_position Float64,
+    best_reference_url String,
+    best_competitor_position Float64,
+    best_competitor_url String,
+    best_competitor_domain String,
+    competitors_positions Int64,
+    unique_competitors_count Int64,
+    si_info Bool,
+    si_nav Bool,
+    si_trans Bool,
+    si_comm Bool,
+    si_local Bool,
+    si_brand Bool,
+    word_count UInt16,
+    fetched_at DateTime64(3)
+) ENGINE = ReplacingMergeTree(fetched_at)
+PARTITION BY project_id
+ORDER BY (project_id, mode, keyword)
 `

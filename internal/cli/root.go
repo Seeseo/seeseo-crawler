@@ -20,7 +20,7 @@ var cfgFile string
 var rootCmd = &cobra.Command{
 	Use:   "crawlobserver",
 	Short: "SEO crawler — extract SEO signals at scale",
-	Long:  `CrawlObserver is an open-source SEO crawler that extracts SEO signals (title, canonical, headers, links) and stores them in ClickHouse.`,
+	Long:  `SeeseoCrawler is an open-source SEO crawler that extracts SEO signals (title, canonical, headers, links) and stores them in ClickHouse.`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		cfg, _ := config.Load()
 
@@ -88,9 +88,9 @@ func isInteractive() bool {
 // askTelemetryConsent prompts the user to opt-in to anonymous analytics.
 func askTelemetryConsent() {
 	fmt.Println("─────────────────────────────────────────────────")
-	fmt.Println("  CrawlObserver — Anonymous Usage Analytics")
+	fmt.Println("  SeeseoCrawler — Anonymous Usage Analytics")
 	fmt.Println()
-	fmt.Println("  Help improve CrawlObserver by sharing anonymous")
+	fmt.Println("  Help improve SeeseoCrawler by sharing anonymous")
 	fmt.Println("  usage data (crawl count, feature usage).")
 	fmt.Println()
 	fmt.Println("  We NEVER collect: URLs, page content, IPs,")

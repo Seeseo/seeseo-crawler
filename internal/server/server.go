@@ -251,6 +251,7 @@ func (s *Server) buildHandler() (http.Handler, error) {
 	mux.HandleFunc("DELETE /api/projects/{pid}/sessions/{sid}", s.handleDisassociateSession)
 	mux.HandleFunc("PUT /api/sessions/{sid}/label", s.handleRenameSession)
 	mux.HandleFunc("POST /api/projects/{pid}/sessions/batch", s.handleBatchAssignSessions)
+	mux.HandleFunc("GET /api/projects/{id}/evolution", s.handleProjectEvolution)
 	mux.HandleFunc("GET /api/api-keys", s.handleListAPIKeys)
 	mux.HandleFunc("POST /api/api-keys", s.handleCreateAPIKey)
 	mux.HandleFunc("DELETE /api/api-keys/{id}", s.handleDeleteAPIKey)
@@ -269,6 +270,14 @@ func (s *Server) buildHandler() (http.Handler, error) {
 	mux.HandleFunc("GET /api/projects/{id}/gsc/devices", s.handleGSCDevices)
 	mux.HandleFunc("GET /api/projects/{id}/gsc/timeline", s.handleGSCTimeline)
 	mux.HandleFunc("GET /api/projects/{id}/gsc/inspection", s.handleGSCInspection)
+
+	mux.HandleFunc("GET /api/projects/{id}/haloscan/status", s.handleHaloscanStatus)
+	mux.HandleFunc("POST /api/projects/{id}/haloscan/sync", s.handleHaloscanSync)
+	mux.HandleFunc("GET /api/projects/{id}/haloscan/overview", s.handleHaloscanOverview)
+	mux.HandleFunc("GET /api/projects/{id}/haloscan/positions", s.handleHaloscanPositions)
+	mux.HandleFunc("GET /api/projects/{id}/haloscan/competitors", s.handleHaloscanCompetitors)
+	mux.HandleFunc("GET /api/projects/{id}/haloscan/trends", s.handleHaloscanTrends)
+	mux.HandleFunc("GET /api/projects/{id}/haloscan/gap", s.handleHaloscanGap)
 
 	// Provider (SEObserver, etc.) routes
 	mux.HandleFunc("GET /api/projects/{id}/providers", s.handleListProviderConnections)
@@ -799,7 +808,7 @@ func basicAuth(next http.Handler, username, password string) http.Handler {
 		if !ok ||
 			subtle.ConstantTimeCompare([]byte(user), []byte(username)) != 1 ||
 			subtle.ConstantTimeCompare([]byte(pass), []byte(password)) != 1 {
-			w.Header().Set("WWW-Authenticate", `Basic realm="CrawlObserver"`)
+			w.Header().Set("WWW-Authenticate", `Basic realm="SeeseoCrawler"`)
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}

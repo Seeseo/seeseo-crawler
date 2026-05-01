@@ -260,17 +260,26 @@
     width: 70px;
     white-space: nowrap;
   }
+  .cell-url {
+    /* max-width: 0 with overflow:hidden forces the table to allocate width
+       based on the other columns, so any overflow gets ellipsised by the
+       inner <a> element. Without this, very long URLs explode the row. */
+    max-width: 0;
+    overflow: hidden;
+  }
   .cell-url-inner {
     display: inline-flex;
     align-items: center;
     gap: 5px;
     min-width: 0;
     max-width: 100%;
+    width: 100%;
   }
   .cell-url-inner a {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    min-width: 0;
   }
   .bl-favicon {
     flex-shrink: 0;

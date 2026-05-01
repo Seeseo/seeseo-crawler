@@ -1,5 +1,5 @@
 #!/bin/sh
-# CrawlObserver installer — detects OS/arch and downloads the right binary.
+# SeeseoCrawler installer — detects OS/arch and downloads the right binary.
 # Usage: curl -fsSL crawlobserver.com/install.sh | sh
 
 set -e
@@ -35,7 +35,7 @@ fi
 ASSET="${BINARY_NAME}-${GOOS}-${GOARCH}${SUFFIX}"
 URL="https://github.com/${REPO}/releases/latest/download/${ASSET}"
 
-echo "Downloading CrawlObserver for ${GOOS}/${GOARCH}..."
+echo "Downloading SeeseoCrawler for ${GOOS}/${GOARCH}..."
 echo "  ${URL}"
 
 # Download to temp file
@@ -63,7 +63,7 @@ else
     sudo mv "$TMP" "${INSTALL_DIR}/${BINARY_NAME}"
   fi
   echo ""
-  echo "Done! CrawlObserver installed to ${INSTALL_DIR}/${BINARY_NAME}"
+  echo "Done! SeeseoCrawler installed to ${INSTALL_DIR}/${BINARY_NAME}"
   echo ""
   echo "  crawlobserver"
   echo ""

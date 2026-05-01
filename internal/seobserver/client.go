@@ -23,7 +23,7 @@ func NewClient(apiKey, appVersion string) *Client {
 	return &Client{
 		apiKey:    apiKey,
 		baseURL:   "https://api1.seobserver.com",
-		userAgent: "CrawlObserver-API/" + appVersion,
+		userAgent: "SeeseoCrawler-API/" + appVersion,
 		http:      &http.Client{Timeout: 60 * time.Second},
 	}
 }

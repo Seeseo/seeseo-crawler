@@ -18,8 +18,8 @@ import (
 )
 
 const (
-	repoOwner = "SEObserver"
-	repoName  = "crawlobserver"
+	repoOwner = "Seeseo"
+	repoName  = "seeseo-crawler"
 )
 
 // Release represents a GitHub release.
@@ -208,7 +208,7 @@ func expectedAssetName() string {
 
 // ExpectedDesktopAssetName returns the expected .app.tar.gz asset name for desktop updates.
 func ExpectedDesktopAssetName() string {
-	return "CrawlObserver-macOS.app.tar.gz"
+	return "SeeseoCrawler-macOS.app.tar.gz"
 }
 
 // DownloadDesktopUpdate downloads and extracts the .app.tar.gz for desktop mode.
@@ -306,7 +306,7 @@ func SelfUpdateDesktop(newAppPath string) error {
 	}
 
 	// Walk up from the binary to find the .app bundle
-	// e.g. /path/to/CrawlObserver.app/Contents/MacOS/CrawlObserver -> /path/to/CrawlObserver.app
+	// e.g. /path/to/SeeseoCrawler.app/Contents/MacOS/SeeseoCrawler -> /path/to/SeeseoCrawler.app
 	currentApp := execPath
 	for !strings.HasSuffix(currentApp, ".app") {
 		parent := filepath.Dir(currentApp)

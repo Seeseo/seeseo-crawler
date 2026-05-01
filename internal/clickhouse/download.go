@@ -35,15 +35,15 @@ func downloadURL() (string, error) {
 	if runtime.GOOS == "windows" {
 		return "", fmt.Errorf(`ClickHouse does not provide a standalone Windows binary.
 
-CrawlObserver needs Docker to run ClickHouse on Windows.
+SeeseoCrawler needs Docker to run ClickHouse on Windows.
 
 Step 1 — Install Docker Desktop (free):
          https://docs.docker.com/desktop/setup/install/windows-install/
 
-Step 2 — Open a terminal in the CrawlObserver folder and run:
+Step 2 — Open a terminal in the SeeseoCrawler folder and run:
          docker compose up -d
 
-Step 3 — Start CrawlObserver:
+Step 3 — Start SeeseoCrawler:
          crawlobserver serve
 
 Full setup guide: https://github.com/SEObserver/crawlobserver#quick-start`)
