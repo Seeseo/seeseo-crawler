@@ -385,6 +385,38 @@ export async function computePageRank(sessionId) {
 }
 
 /**
+ * Lance le pipeline d'audit Seeseo (build_audit_auto.py) pour ce crawl_session.
+ * Idempotent côté serveur : si un job tourne déjà, retourne son état courant.
+ * @param {string} sessionId
+ * @returns {Promise<Object>}
+ */
+export async function buildAudit(sessionId) {
+  return fetchJSON(`/sessions/${sessionId}/build-audit`, { method: 'POST' });
+}
+
+/**
+ * Retourne l'état courant du job d'audit pour ce SID.
+ * { status: "idle" | "running" | "done" | "error", logs, output_html, output_pdf, error }
+ * @param {string} sessionId
+ * @returns {Promise<Object>}
+ */
+export async function getAuditStatus(sessionId) {
+  return fetchJSON(`/sessions/${sessionId}/build-audit/status`);
+}
+
+/**
+ * Ouvre le livrable HTML/PDF dans le navigateur système (macOS `open`),
+ * pas dans le webview embarqué qui ne gère pas window.open(target="_blank").
+ * @param {string} fileBasename — nom du fichier (audit-X.html ou audit-X.pdf)
+ * @returns {Promise<Object>}
+ */
+export async function openAuditFile(fileBasename) {
+  return fetchJSON(`/audit-open?file=${encodeURIComponent(fileBasename)}`, {
+    method: 'POST',
+  });
+}
+
+/**
  * @param {string} sessionId
  * @param {number} statusCode
  * @param {Object|null} options

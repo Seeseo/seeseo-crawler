@@ -919,11 +919,15 @@ func (s *Store) ComputePageRank(ctx context.Context, sessionID string) error {
 	if err := s.conn.Exec(ctx, fmt.Sprintf("CREATE TABLE %s (page_url String, new_pagerank Float64) ENGINE = Join(ANY, LEFT, page_url)", tmpTable)); err != nil {
 		return fmt.Errorf("creating temp pagerank table: %w", err)
 	}
-	defer func() {
-		if err := s.conn.Exec(ctx, fmt.Sprintf("DROP TABLE IF EXISTS %s", tmpTable)); err != nil {
-			applog.Warnf("storage", "cleanup temp table %s: %v", tmpTable, err)
-		}
-	}()
+	// Note : on NE drop PAS cette table en defer. Elle est référencée par la
+	// mutation `ALTER TABLE pages UPDATE pagerank = joinGet(tmp_pagerank_<sid>, ...)`
+	// qui reste dans `system.mutations` même après `is_done=1`. Si un autre crawl
+	// INSERT dans `pages` en parallèle, ClickHouse re-prépare la mutation pour la
+	// background processing → joinGet sur tmp table droppée → CRASH ClickHouse
+	// (cf. project_seeseo_crawler_bug_parallel_crawls.md). On laisse la table en
+	// place ; le pre-cleanup `DROP IF EXISTS` au-dessus gère le re-run de la même
+	// session, et `CleanupOldTempTables` (au démarrage du Server) purge les
+	// vieilles tables des sessions terminées il y a > 24h.
 
 	// Build all URL→PR pairs: resolved targets get their computed PR,
 	// redirected/canonical sources get the same PR as their target.
@@ -997,11 +1001,10 @@ func (s *Store) UpdateContentHashes(ctx context.Context, sessionID string, hashe
 	if err := s.conn.Exec(ctx, fmt.Sprintf("CREATE TABLE %s (page_url String, new_hash UInt64) ENGINE = Join(ANY, LEFT, page_url)", tmpTable)); err != nil {
 		return fmt.Errorf("creating temp content hash table: %w", err)
 	}
-	defer func() {
-		if err := s.conn.Exec(ctx, fmt.Sprintf("DROP TABLE IF EXISTS %s", tmpTable)); err != nil {
-			applog.Warnf("storage", "cleanup temp table %s: %v", tmpTable, err)
-		}
-	}()
+	// Note : pas de DROP en defer. Cette table est référencée par la mutation
+	// `ALTER TABLE pages UPDATE content_hash = joinGet(...)` qui reste dans
+	// system.mutations. Cf. ComputePageRank ci-dessus pour le détail du bug
+	// crawls parallèles. CleanupOldTempTables au boot purge les anciennes.
 
 	const chunkSize = 5000
 	urls := make([]string, 0, len(hashes))
@@ -1181,11 +1184,9 @@ func (s *Store) RecomputeDepths(ctx context.Context, sessionID string, seedURLs 
 	if err := s.conn.Exec(ctx, fmt.Sprintf("CREATE TABLE %s (page_url String, new_depth UInt16, new_found_on String) ENGINE = Join(ANY, LEFT, page_url)", tmpTable)); err != nil {
 		return fmt.Errorf("creating temp depths table: %w", err)
 	}
-	defer func() {
-		if err := s.conn.Exec(ctx, fmt.Sprintf("DROP TABLE IF EXISTS %s", tmpTable)); err != nil {
-			applog.Warnf("storage", "cleanup temp table %s: %v", tmpTable, err)
-		}
-	}()
+	// Note : pas de DROP en defer. Cette table est référencée par la mutation
+	// `ALTER TABLE pages UPDATE depth = joinGet(...)` qui reste dans system.mutations.
+	// Cf. ComputePageRank pour le détail du bug crawls parallèles.
 
 	urls := make([]string, 0, len(depths))
 	for u := range depths {

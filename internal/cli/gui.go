@@ -361,6 +361,16 @@ func setupClickHouseWithCb(cfg *config.Config, connectDB string, onProgress func
 		applog.Info("cli", "Migrations complete.")
 	}
 
+	// Cleanup des tmp tables Join orphelines des sessions anciennes (> 24h).
+	// Ces tables sont gardées vivantes pendant qu'une session est en cours
+	// pour éviter les crashs ClickHouse lors de re-prepare de mutations
+	// pendantes (cf. project_seeseo_crawler_bug_parallel_crawls.md). On
+	// l'appelle systématiquement au boot du GUI (peu importe le path
+	// `connectDB`), car les migrations standalone passent par un autre flow.
+	if err := store.CleanupOldTempTables(context.Background()); err != nil {
+		applog.Warnf("cli", "tmp tables cleanup failed (non-fatal): %v", err)
+	}
+
 	return store, cleanup, managed, nil
 }
 

@@ -5,7 +5,11 @@
     renameSession,
     associateSession,
     disassociateSession,
+    buildAudit,
+    getAuditStatus,
+    openAuditFile,
   } from '../api.js';
+  import { onDestroy } from 'svelte';
   import { fmtN, a11yKeydown } from '../utils.js';
   import { t } from '../i18n/index.svelte.js';
 
@@ -56,6 +60,65 @@
   }
 
   let recomputing = $state(false);
+
+  // ─── Audit Seeseo (build_audit_auto.py sidecar) ────────────────────────────
+  let auditJob = $state(null); // { status, logs, output_html, output_pdf, error }
+  let auditPolling = $state(null);
+
+  async function refreshAuditStatus() {
+    try {
+      const r = await getAuditStatus(session.ID);
+      auditJob = r;
+      if (r?.status === 'done' || r?.status === 'error') {
+        if (auditPolling) {
+          clearInterval(auditPolling);
+          auditPolling = null;
+        }
+      }
+    } catch (e) {
+      // silencieux : 404 si jamais lancé
+    }
+  }
+
+  function startAuditPolling() {
+    if (auditPolling) return;
+    auditPolling = setInterval(refreshAuditStatus, 2500);
+  }
+
+  async function handleBuildAudit() {
+    try {
+      const r = await buildAudit(session.ID);
+      auditJob = r;
+      startAuditPolling();
+    } catch (e) {
+      onerror?.(e.message);
+    }
+  }
+
+  async function openAuditOutput(kind) {
+    const job = auditJob;
+    const path = kind === 'pdf' ? job?.output_pdf : job?.output_html;
+    if (!path) return;
+    const base = path.split('/').pop();
+    // On délègue au navigateur système via `open` macOS (POST /api/audit-open),
+    // car le webview embarqué de l'app desktop ne gère pas window.open(target=_blank).
+    try {
+      await openAuditFile(base);
+    } catch (e) {
+      onerror?.(e.message);
+    }
+  }
+
+  // Charge l'état initial au mount (au cas où un job tourne déjà côté serveur)
+  $effect(() => {
+    if (session?.ID && session?.Status === 'completed') {
+      refreshAuditStatus();
+    }
+  });
+
+  onDestroy(() => {
+    if (auditPolling) clearInterval(auditPolling);
+  });
 
   async function handleRecomputeDepths() {
     showActionsMenu = false;
@@ -214,6 +277,47 @@
     >
     {#if session.StartedAt && session.StartedAt !== '1970-01-01T00:00:00Z'}
       <span class="action-bar-meta">{fmtDate(session.StartedAt)} &middot; {elapsed()}</span>
+    {/if}
+
+    {#if session.Status === 'completed'}
+      <!-- Audit Seeseo : bouton pipeline auto (build_audit_auto.py sidecar) -->
+      {#if !auditJob || auditJob.status === 'idle'}
+        <button class="btn btn-sm btn-audit" onclick={handleBuildAudit}>
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+          </svg>
+          Lancer l'audit Seeseo
+        </button>
+      {:else if auditJob.status === 'running'}
+        <span class="audit-running">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" class="audit-spinner" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" opacity="0.25"/>
+            <path d="M21 12a9 9 0 0 1-9 9"/>
+          </svg>
+          Audit en cours&hellip; ({auditJob.logs?.length || 0} étape{(auditJob.logs?.length || 0) > 1 ? 's' : ''})
+        </span>
+      {:else if auditJob.status === 'done'}
+        <span class="audit-done">
+          <button class="btn btn-sm btn-audit-success" onclick={() => openAuditOutput('html')}>
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M20 6L9 17l-5-5"/>
+            </svg>
+            Audit prêt &mdash; ouvrir HTML
+          </button>
+          {#if auditJob.output_pdf}
+            <button class="btn btn-sm" onclick={() => openAuditOutput('pdf')} title="Ouvrir PDF">PDF</button>
+          {/if}
+          <button class="btn btn-sm btn-ghost" onclick={handleBuildAudit} title="Relancer">↻</button>
+        </span>
+      {:else if auditJob.status === 'error'}
+        <span class="audit-error" title={auditJob.error || 'Erreur audit'}>
+          ⚠ Audit échoué
+          <button class="btn btn-sm btn-ghost" onclick={handleBuildAudit} title="Réessayer">↻</button>
+        </span>
+      {/if}
     {/if}
 
     <!-- Single "Actions" dropdown -->
@@ -681,6 +785,69 @@
     font-size: 12px;
     color: var(--text-muted);
     white-space: nowrap;
+  }
+  /* Audit Seeseo — bouton + états (running / done / error) */
+  .btn-audit {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #FF7900;
+    color: #fff;
+    border: 1px solid #FF7900;
+    font-weight: 600;
+  }
+  .btn-audit:hover {
+    background: #C95C00;
+    border-color: #C95C00;
+  }
+  .btn-audit-success {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #10B981;
+    color: #fff;
+    border: 1px solid #10B981;
+    font-weight: 600;
+  }
+  .btn-audit-success:hover {
+    background: #059669;
+    border-color: #059669;
+  }
+  .audit-running {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #FF7900;
+    font-weight: 500;
+    padding: 6px 10px;
+  }
+  .audit-spinner {
+    animation: audit-spin 1s linear infinite;
+  }
+  @keyframes audit-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  .audit-done {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .audit-error {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #DC2626;
+    font-weight: 500;
+    padding: 6px 10px;
+  }
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
   }
   .action-bar-icons {
     display: flex;

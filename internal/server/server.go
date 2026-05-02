@@ -213,6 +213,12 @@ func (s *Server) buildHandler() (http.Handler, error) {
 	mux.HandleFunc("POST /api/sessions/{id}/compute-pagerank", s.handleComputePageRank)
 	mux.HandleFunc("POST /api/sessions/{id}/compute-near-duplicates", s.handleComputeNearDuplicates)
 	mux.HandleFunc("GET /api/sessions/{id}/hreflang-validation", s.handleHreflangValidation)
+
+	// Audit Seeseo (sidecar build_audit_auto.py)
+	mux.HandleFunc("POST /api/sessions/{id}/build-audit", s.handleBuildAudit)
+	mux.HandleFunc("GET /api/sessions/{id}/build-audit/status", s.handleBuildAuditStatus)
+	mux.HandleFunc("GET /api/audit-output", s.handleOpenAuditOutput)
+	mux.HandleFunc("POST /api/audit-open", s.handleOpenAuditInBrowser)
 	mux.HandleFunc("POST /api/sessions/{id}/compute-hreflang-validation", s.handleComputeHreflangValidation)
 
 	// Interlinking

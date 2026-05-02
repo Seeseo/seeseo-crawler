@@ -57,20 +57,20 @@ func normaliseDomain(input string) string {
 }
 
 // AutoSyncProjectData orchestrates the "no-click" data plane for free
-// providers (Haloscan today). SEObserver is intentionally NOT auto-fetched
-// here — it consumes paid API units, so we leave the trigger manual via
-// the UI button on the SEObserver Data tab. The provider_connection is
-// still auto-created elsewhere (seobserverautoconnect.SyncProject) so the
-// user only has to click "Récupérer les données" once when they want the
-// netlinking data for an audit.
+// providers (Haloscan + GSC today). SEObserver is intentionally NOT
+// auto-fetched here — it consumes paid API units, so we leave the trigger
+// manual via the UI button on the SEObserver Data tab.
 //
-// Domain corrections that used to happen here (SEObserver) are also moved
-// out — they only matter at fetch time and are now done inline in
-// handleProviderFetch when the user triggers the fetch manually.
+// GSC is free (Google quota: 1 200 req/min) so we trigger the fetch
+// transparently when the user has connected GSC OAuth but no data is
+// loaded yet. triggerGSCFetchAfterCrawl is idempotent: it skips if a
+// fetch is already running, and runs an incremental 30d refresh if data
+// is already present (vs. 16-month initial fetch on first run).
 //
 // Safe to call repeatedly. Designed to run in the background.
 func (s *Server) AutoSyncProjectData(projectID, projectName string) {
 	go s.autoSyncHaloscan(projectID, projectName)
+	go s.triggerGSCFetchAfterCrawl(projectID)
 }
 
 // upgradeSEObserverDomainIfNeeded transparently fixes the stored domain on
