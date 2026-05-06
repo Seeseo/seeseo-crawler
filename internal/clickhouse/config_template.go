@@ -27,6 +27,14 @@ const configXMLTemplate = `<clickhouse>
             <max_execution_time>60</max_execution_time>
             <max_bytes_before_external_group_by>500000000</max_bytes_before_external_group_by>
             <max_bytes_before_external_sort>500000000</max_bytes_before_external_sort>
+            <!-- Désactivation de la compilation JIT : crash récurrent
+                 "Could not find symbol _memcmpSmallCharsAllowOverflow15"
+                 (CANNOT_COMPILE_CODE) sur certaines requêtes d'agrégation,
+                 spécifique à ClickHouse 25.x sur macOS. Sans JIT, perf à
+                 peine impactée pour notre usage (taille BDD ≤ 100 Mo). -->
+            <compile_expressions>0</compile_expressions>
+            <compile_aggregate_expressions>0</compile_aggregate_expressions>
+            <compile_sort_description>0</compile_sort_description>
         </default>
     </profiles>
     <users>
