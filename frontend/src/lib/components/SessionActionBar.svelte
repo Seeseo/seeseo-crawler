@@ -7,6 +7,8 @@
     disassociateSession,
     buildAudit,
     getAuditStatus,
+    buildAuditLight,
+    getAuditLightStatus,
     openAuditFile,
   } from '../api.js';
   import { onDestroy } from 'svelte';
@@ -109,15 +111,61 @@
     }
   }
 
+  // ─── Audit simple (build_light_auto.py sidecar, marque seeseo | seo-paris) ────
+  let lightJob = $state(null);
+  let lightPolling = $state(null);
+
+  async function refreshLightStatus() {
+    try {
+      const r = await getAuditLightStatus(session.ID);
+      lightJob = r;
+      if (r?.status === 'done' || r?.status === 'error') {
+        if (lightPolling) {
+          clearInterval(lightPolling);
+          lightPolling = null;
+        }
+      }
+    } catch (e) {
+      // silencieux
+    }
+  }
+
+  function startLightPolling() {
+    if (lightPolling) return;
+    lightPolling = setInterval(refreshLightStatus, 2500);
+  }
+
+  async function handleBuildAuditLight(brand) {
+    try {
+      const r = await buildAuditLight(session.ID, brand);
+      lightJob = r;
+      startLightPolling();
+    } catch (e) {
+      onerror?.(e.message);
+    }
+  }
+
+  async function openLightOutput(kind) {
+    const path = kind === 'pdf' ? lightJob?.output_pdf : lightJob?.output_html;
+    if (!path) return;
+    try {
+      await openAuditFile(path.split('/').pop());
+    } catch (e) {
+      onerror?.(e.message);
+    }
+  }
+
   // Charge l'état initial au mount (au cas où un job tourne déjà côté serveur)
   $effect(() => {
     if (session?.ID && session?.Status === 'completed') {
       refreshAuditStatus();
+      refreshLightStatus();
     }
   });
 
   onDestroy(() => {
     if (auditPolling) clearInterval(auditPolling);
+    if (lightPolling) clearInterval(lightPolling);
   });
 
   async function handleRecomputeDepths() {
@@ -316,6 +364,50 @@
         <span class="audit-error" title={auditJob.error || 'Erreur audit'}>
           ⚠ Audit échoué
           <button class="btn btn-sm btn-ghost" onclick={handleBuildAudit} title="Réessayer">↻</button>
+        </span>
+      {/if}
+    {/if}
+
+    {#if session.Status === 'completed'}
+      <!-- Audit simple : version light, marque Seeseo ou SEO Paris (build_light_auto.py sidecar) -->
+      {#if !lightJob || lightJob.status === 'idle'}
+        <button class="btn btn-sm btn-audit" onclick={() => handleBuildAuditLight('seeseo')} title="Audit simple, marque Seeseo">
+          Audit simple
+        </button>
+        <button class="btn btn-sm btn-audit" onclick={() => handleBuildAuditLight('seo-paris')} title="Audit simple, marque SEO Paris">
+          Audit simple SEO Paris
+        </button>
+      {:else if lightJob.status === 'running'}
+        <span class="audit-running">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" class="audit-spinner" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" opacity="0.25"/>
+            <path d="M21 12a9 9 0 0 1-9 9"/>
+          </svg>
+          Audit simple {lightJob.brand === 'seo-paris' ? 'SEO Paris' : 'Seeseo'} en cours&hellip; ({lightJob.logs?.length || 0} étape{(lightJob.logs?.length || 0) > 1 ? 's' : ''})
+        </span>
+      {:else if lightJob.status === 'done'}
+        <span class="audit-done">
+          <button class="btn btn-sm btn-audit-success" onclick={() => openLightOutput('html')}>
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M20 6L9 17l-5-5"/>
+            </svg>
+            Audit simple {lightJob.brand === 'seo-paris' ? 'SEO Paris' : 'Seeseo'} prêt &mdash; ouvrir HTML
+          </button>
+          {#if lightJob.output_pdf}
+            <button class="btn btn-sm" onclick={() => openLightOutput('pdf')} title="Ouvrir PDF">PDF</button>
+          {/if}
+          <button class="btn btn-sm btn-ghost" onclick={() => handleBuildAuditLight(lightJob.brand === 'seo-paris' ? 'seeseo' : 'seo-paris')}
+                  title={lightJob.brand === 'seo-paris' ? 'Refaire en marque Seeseo' : 'Refaire en marque SEO Paris'}>
+            {lightJob.brand === 'seo-paris' ? 'Seeseo' : 'SEO Paris'}
+          </button>
+          <button class="btn btn-sm btn-ghost" onclick={() => handleBuildAuditLight(lightJob.brand || 'seeseo')} title="Relancer">↻</button>
+        </span>
+      {:else if lightJob.status === 'error'}
+        <span class="audit-error" title={lightJob.error || 'Erreur audit simple'}>
+          ⚠ Audit simple échoué
+          <button class="btn btn-sm btn-ghost" onclick={() => handleBuildAuditLight(lightJob.brand || 'seeseo')} title="Réessayer">↻</button>
         </span>
       {/if}
     {/if}

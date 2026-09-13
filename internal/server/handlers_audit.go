@@ -21,6 +21,7 @@ import (
 // (qui spawne lui-même fetch_haloscan + build_audit + export_pdf en chaîne).
 type AuditJob struct {
 	SessionID  string    `json:"session_id"`
+	Brand      string    `json:"brand,omitempty"` // audit simple : seeseo | seo-paris
 	Status     string    `json:"status"` // queued / running / done / error
 	StartedAt  time.Time `json:"started_at"`
 	FinishedAt time.Time `json:"finished_at,omitempty"`

@@ -405,6 +405,27 @@ export async function getAuditStatus(sessionId) {
 }
 
 /**
+ * Lance l'audit simple (build_light_auto.py) pour ce crawl_session.
+ * @param {string} sessionId
+ * @param {'seeseo'|'seo-paris'} brand — marque du livrable
+ * @returns {Promise<Object>}
+ */
+export async function buildAuditLight(sessionId, brand = 'seeseo') {
+  return fetchJSON(`/sessions/${sessionId}/build-audit-light?brand=${encodeURIComponent(brand)}`, {
+    method: 'POST',
+  });
+}
+
+/**
+ * État courant du job d'audit simple pour ce SID.
+ * @param {string} sessionId
+ * @returns {Promise<Object>}
+ */
+export async function getAuditLightStatus(sessionId) {
+  return fetchJSON(`/sessions/${sessionId}/build-audit-light/status`);
+}
+
+/**
  * Ouvre le livrable HTML/PDF dans le navigateur système (macOS `open`),
  * pas dans le webview embarqué qui ne gère pas window.open(target="_blank").
  * @param {string} fileBasename — nom du fichier (audit-X.html ou audit-X.pdf)
