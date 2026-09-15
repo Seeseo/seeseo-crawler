@@ -1788,7 +1788,8 @@ export async function syncHaloscan(projectId, opts = {}) {
     method: 'POST',
     body: JSON.stringify({
       domain: opts.domain || '',
-      position_max: opts.positionMax || 100,
+      // 0 = the server picks from the project mode (30 after a crawl prospect, 100 otherwise)
+      position_max: opts.positionMax || 0,
     }),
   });
 }

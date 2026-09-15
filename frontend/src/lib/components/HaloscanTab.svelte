@@ -111,7 +111,7 @@
     syncError = '';
     pollStartedAt = Date.now();
     try {
-      await syncHaloscan(projectId, { domain: domainInput.trim(), positionMax: 100 });
+      await syncHaloscan(projectId, { domain: domainInput.trim() });
       pollTimer = setInterval(async () => {
         try {
           const s = await getHaloscanStatus(projectId);

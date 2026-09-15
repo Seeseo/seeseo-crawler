@@ -100,12 +100,15 @@ func (s *Server) handleHaloscanSync(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "domain required (no body domain and project name unusable)")
 		return
 	}
+	// No explicit position_max: the project's mode decides (30 without the
+	// keywords diff after a "Crawl prospect", 100 + diff otherwise).
+	mode, _ := s.projectHaloscanMode(projectID)
 	positionMax := req.PositionMax
 	if positionMax <= 0 {
-		positionMax = 100
+		positionMax = mode.positionMax
 	}
 
-	go s.runHaloscanSync(projectID, domain, positionMax, apiKey)
+	go s.runHaloscanSync(projectID, domain, positionMax, mode.skipDiff, apiKey)
 
 	writeJSON(w, map[string]string{"status": "syncing", "domain": domain})
 }
@@ -114,12 +117,12 @@ const haloscanCompetitorsForTrends = 4
 
 // runHaloscanSync orchestrates the 5 endpoint calls and persists into ClickHouse.
 // Runs in its own goroutine and logs progress via applog.
-func (s *Server) runHaloscanSync(projectID, domain string, positionMax int, apiKey string) {
+func (s *Server) runHaloscanSync(projectID, domain string, positionMax int, skipDiff bool, apiKey string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
 
 	client := haloscan.NewClient(apiKey, "1.0")
-	applog.Infof("haloscan", "sync start project=%s domain=%s positionMax=%d", projectID, domain, positionMax)
+	applog.Infof("haloscan", "sync start project=%s domain=%s positionMax=%d skipDiff=%v", projectID, domain, positionMax, skipDiff)
 
 	// Wipe previous rows for this project to keep the dataset coherent.
 	if err := s.store.DeleteHaloscanProjectData(ctx, projectID); err != nil {
@@ -255,8 +258,8 @@ func (s *Server) runHaloscanSync(projectID, domain string, positionMax int, apiK
 		}
 	}
 
-	// 5) Keywords diff: missing + bested
-	if len(competitorDomains) > 0 {
+	// 5) Keywords diff: missing + bested (skipped for a crawl prospect)
+	if len(competitorDomains) > 0 && !skipDiff {
 		for _, mode := range []haloscan.KeywordsDiffMode{haloscan.DiffMissing, haloscan.DiffBested} {
 			diffs, _, err := client.KeywordsDiff(ctx, domain, competitorDomains, mode, 200, 3)
 			if err != nil {

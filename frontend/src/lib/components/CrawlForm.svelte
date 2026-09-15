@@ -69,6 +69,14 @@
   let maxPages = $state(isNew ? 0 : crawlerCfg.MaxPages || 0);
   let maxDepth = $state(isNew ? 0 : crawlerCfg.MaxDepth || 0);
   let storeHtml = $state(isNew ? false : crawlerCfg.StoreHTML || false);
+  let prospect = $state(isNew ? false : crawlerCfg.Prospect || false);
+
+  // Crawl prospect : Haloscan 1-30 sans keywordsDiff, HTML stocké, 5 000 pages si le champ est vide
+  function onProspectChange() {
+    if (!prospect) return;
+    storeHtml = true;
+    if (!maxPages) maxPages = 5000;
+  }
   let crawlScope = $state(isNew ? 'host' : crawlerCfg.CrawlScope || 'host');
   let crawlProjectId = $state(isNew ? initialProjectId : session?.ProjectID || '');
   let checkExternalLinks = $state(true);
@@ -153,6 +161,7 @@
       workers,
       delay: `${crawlDelayMs}ms`,
       store_html: storeHtml,
+      prospect: prospect || undefined,
       crawl_scope: crawlScope,
       project_id: crawlProjectId || null,
       check_external_links: checkExternalLinks,
@@ -261,6 +270,14 @@
         <label for="cf-maxpages">{t('newCrawl.maxPages')}</label>
         <input id="cf-maxpages" type="number" bind:value={maxPages} min="0" />
       </div>
+      {#if isNew}
+        <div class="form-group">
+          <label class="inline-checkbox" title="Haloscan positions 1 à 30 sans keywordsDiff, HTML stocké, 5 000 pages si vide. Décocher pour un crawl client.">
+            <input type="checkbox" bind:checked={prospect} onchange={onProspectChange} />
+            Crawl prospect
+          </label>
+        </div>
+      {/if}
       <div class="form-group">
         <label for="cf-maxdepth">{t('newCrawl.maxDepth')}</label>
         <input id="cf-maxdepth" type="number" bind:value={maxDepth} min="0" />

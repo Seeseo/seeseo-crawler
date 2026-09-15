@@ -23,6 +23,7 @@ const (
 	defaultResourceWorkers = 3
 	maxLastErrors          = 1000
 	defaultMaxPages        = 100000
+	prospectMaxPages       = 5000
 )
 
 // queuedCrawl holds a crawl waiting for a semaphore slot.
@@ -87,7 +88,8 @@ type CrawlRequest struct {
 	Workers             int      `json:"workers"`
 	Delay               string   `json:"delay"`
 	StoreHTML           bool     `json:"store_html"`
-	CrawlScope          string   `json:"crawl_scope"`
+	Prospect            bool     `json:"prospect"`
+	CrawlScope         string   `json:"crawl_scope"`
 	ProjectID           *string  `json:"project_id"`
 	CheckExternalLinks  *bool    `json:"check_external_links"`
 	ExternalLinkWorkers int      `json:"external_link_workers"`
@@ -143,6 +145,16 @@ func (m *Manager) StartCrawl(req CrawlRequest) (string, error) {
 	crawlerCfg.StoreHTML = req.StoreHTML
 	if req.CrawlScope != "" {
 		crawlerCfg.CrawlScope = req.CrawlScope
+	}
+
+	// Crawl prospect: HTML stored (YTG scoring reads it instead of refetching
+	// behind Cloudflare) and a page cap when the field was left empty.
+	if req.Prospect {
+		crawlerCfg.Prospect = true
+		crawlerCfg.StoreHTML = true
+		if req.MaxPages <= 0 {
+			crawlerCfg.MaxPages = prospectMaxPages
+		}
 	}
 
 	// Guardrails: cap workers to MaxWorkers
@@ -386,6 +398,10 @@ func (m *Manager) ResumeCrawl(sessionID string, overrides *CrawlRequest) (string
 			}
 		}
 		crawlerCfg.StoreHTML = overrides.StoreHTML
+		if crawlerCfg.Prospect || overrides.Prospect {
+			crawlerCfg.Prospect = true
+			crawlerCfg.StoreHTML = true
+		}
 		if overrides.CrawlScope != "" {
 			crawlerCfg.CrawlScope = overrides.CrawlScope
 		}
@@ -547,6 +563,10 @@ func (m *Manager) RetryFailed(sessionID string, overrides *CrawlRequest) (int, e
 			}
 		}
 		crawlerCfg.StoreHTML = overrides.StoreHTML
+		if crawlerCfg.Prospect || overrides.Prospect {
+			crawlerCfg.Prospect = true
+			crawlerCfg.StoreHTML = true
+		}
 		if overrides.CrawlScope != "" {
 			crawlerCfg.CrawlScope = overrides.CrawlScope
 		}

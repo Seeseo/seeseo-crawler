@@ -2,11 +2,14 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/SEObserver/crawlobserver/internal/applog"
+	"github.com/SEObserver/crawlobserver/internal/config"
 	"github.com/SEObserver/crawlobserver/internal/providers"
 	"github.com/SEObserver/crawlobserver/internal/seobserverautoconnect"
 )
@@ -101,11 +104,58 @@ func (s *Server) upgradeSEObserverDomainIfNeeded(projectID string, conn *provide
 	})
 }
 
+// haloscanMode is what a Haloscan sync pulls for a project: positions up to
+// positionMax, plus the missing/bested keywords diff unless skipDiff.
+type haloscanMode struct {
+	positionMax int
+	skipDiff    bool
+}
+
+var (
+	haloscanModeClient   = haloscanMode{positionMax: 100}
+	haloscanModeProspect = haloscanMode{positionMax: 30, skipDiff: true}
+)
+
+// projectHaloscanMode reads the mode from the project's latest crawl session:
+// prospect when that crawl was launched with the "Crawl prospect" box ticked.
+// ok is false when the project has no crawl yet.
+func (s *Server) projectHaloscanMode(projectID string) (mode haloscanMode, ok bool) {
+	sessions, err := s.store.ListSessions(context.Background(), projectID)
+	if err != nil || len(sessions) == 0 {
+		return haloscanModeClient, false
+	}
+	var cfg config.Config
+	if err := json.Unmarshal([]byte(sessions[0].Config), &cfg); err == nil && cfg.Crawler.Prospect {
+		return haloscanModeProspect, true
+	}
+	return haloscanModeClient, true
+}
+
+// autoSyncHaloscan pulls Haloscan once for a project that has no data yet.
+// Haloscan export lines are paid, so it only runs once the project has a
+// crawl, whose "Crawl prospect" box decides the mode.
 func (s *Server) autoSyncHaloscan(projectID, projectName string) {
 	apiKey := s.resolveHaloscanAPIKey()
 	if apiKey == "" {
 		return
 	}
+	mode, ok := s.projectHaloscanMode(projectID)
+	if !ok {
+		return
+	}
+	s.autoSyncHaloscanMode(projectID, projectName, apiKey, mode)
+}
+
+// haloscanAutoSyncInFlight holds the project IDs whose auto-sync is running,
+// so project creation, crawl start and app startup never pay the export twice.
+var haloscanAutoSyncInFlight sync.Map
+
+func (s *Server) autoSyncHaloscanMode(projectID, projectName, apiKey string, mode haloscanMode) {
+	if _, running := haloscanAutoSyncInFlight.LoadOrStore(projectID, struct{}{}); running {
+		return
+	}
+	defer haloscanAutoSyncInFlight.Delete(projectID)
+
 	hasData, err := s.store.HasHaloscanData(context.Background(), projectID)
 	if err != nil {
 		applog.Errorf("autosync", "haloscan check has_data project=%s: %v", projectID, err)
@@ -120,8 +170,8 @@ func (s *Server) autoSyncHaloscan(projectID, projectName string) {
 		applog.Warnf("autosync", "haloscan: empty domain for project %s (%s), skip auto-sync", projectID, projectName)
 		return
 	}
-	applog.Infof("autosync", "haloscan sync start project=%s domain=%s", projectID, domain)
-	s.runHaloscanSync(projectID, domain, 100, apiKey)
+	applog.Infof("autosync", "haloscan sync start project=%s domain=%s prospect=%v", projectID, domain, mode.skipDiff)
+	s.runHaloscanSync(projectID, domain, mode.positionMax, mode.skipDiff, apiKey)
 }
 
 // AutoSyncAllProjects walks every existing project and kicks off the auto data

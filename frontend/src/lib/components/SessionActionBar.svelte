@@ -160,6 +160,8 @@
     if (session?.ID && session?.Status === 'completed') {
       refreshAuditStatus();
       refreshLightStatus();
+    } else if (session?.ID && session?.Status === 'stopped') {
+      refreshLightStatus();
     }
   });
 
@@ -368,7 +370,7 @@
       {/if}
     {/if}
 
-    {#if session.Status === 'completed'}
+    {#if session.Status === 'completed' || session.Status === 'stopped'}
       <!-- Audit simple : version light, marque Seeseo ou SEO Paris (build_light_auto.py sidecar) -->
       {#if !lightJob || lightJob.status === 'idle'}
         <button class="btn btn-sm btn-audit" onclick={() => handleBuildAuditLight('seeseo')} title="Audit simple, marque Seeseo">

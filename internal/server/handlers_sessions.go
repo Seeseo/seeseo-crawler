@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"testing"
 	"time"
 
 	"crypto/tls"
@@ -335,6 +336,22 @@ func (s *Server) handleStartCrawl(w http.ResponseWriter, r *http.Request) {
 	// crawl itself.
 	if req.ProjectID != nil && *req.ProjectID != "" {
 		go s.triggerGSCFetchAfterCrawl(*req.ProjectID)
+		// Haloscan once per project, in the mode of this crawl (the session row
+		// may not be stored yet, so the request decides).
+		if apiKey := s.resolveHaloscanAPIKey(); apiKey != "" && !testing.Testing() {
+			mode := haloscanModeClient
+			if req.Prospect {
+				mode = haloscanModeProspect
+			}
+			projectID := *req.ProjectID
+			go func() {
+				name := ""
+				if p, err := s.keyStore.GetProject(projectID); err == nil {
+					name = p.Name
+				}
+				s.autoSyncHaloscanMode(projectID, name, apiKey, mode)
+			}()
+		}
 	}
 
 	status := "started"

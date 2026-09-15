@@ -57,7 +57,8 @@ type CrawlerConfig struct {
 	MaxBodySize           int64          `mapstructure:"max_body_size"`
 	RespectRobots         bool           `mapstructure:"respect_robots"`
 	StoreHTML             bool           `mapstructure:"store_html"`
-	CrawlScope            string         `mapstructure:"crawl_scope"`             // "host" (default), "domain" (eTLD+1), or "subdirectory"
+	Prospect              bool           `mapstructure:"prospect"`                // crawl prospect : Haloscan positions 1-30 sans keywordsDiff, HTML stocké, 5 000 pages par défaut
+	CrawlScope         string         `mapstructure:"crawl_scope"`             // "host" (default), "domain" (eTLD+1), or "subdirectory"
 	AllowPrivateIPs       bool           `mapstructure:"allow_private_ips"`       // allow crawling private/reserved IPs (default: false)
 	TLSProfile            string         `mapstructure:"tls_profile"`             // "", "chrome", "firefox", "edge"
 	SourceIP              string         `mapstructure:"source_ip"`               // local IP to bind outgoing connections
