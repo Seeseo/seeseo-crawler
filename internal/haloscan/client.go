@@ -18,6 +18,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -45,6 +46,21 @@ func NewClient(apiKey, appVersion string) *Client {
 		userAgent: ua,
 		http:      &http.Client{Timeout: defaultTimeout},
 	}
+}
+
+// SetTimeout overrides the per-request timeout. Used for the slow endpoints
+// (siteCompetitors takes 1 to 2 minutes on a big domain).
+func (c *Client) SetTimeout(d time.Duration) {
+	if d > 0 {
+		c.http.Timeout = d
+	}
+}
+
+// IsInsufficientCredit reports whether a Haloscan response says the account is
+// out of credit. Haloscan answers HTTP 200 with errorCode INSUFFICIENT_CREDIT
+// and empty results, so retrying would only burn time.
+func IsInsufficientCredit(meta *CallMeta) bool {
+	return meta != nil && strings.Contains(meta.ResponseBody, "INSUFFICIENT_CREDIT")
 }
 
 // CallMeta captures metadata for logging into ClickHouse.

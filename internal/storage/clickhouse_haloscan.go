@@ -464,9 +464,12 @@ func (s *Store) ListHaloscanKeywordsDiff(ctx context.Context, projectID, mode st
 // HasHaloscanData reports whether any Haloscan overview row exists for the project.
 func (s *Store) HasHaloscanData(ctx context.Context, projectID string) (bool, error) {
 	var n uint64
+	// Positions count too: an overview that failed while the positions landed
+	// must not make a restart pay the export a second time.
 	err := s.conn.QueryRow(ctx,
-		`SELECT count() FROM crawlobserver.haloscan_overview WHERE project_id = ? LIMIT 1`,
-		projectID).Scan(&n)
+		`SELECT (SELECT count() FROM crawlobserver.haloscan_overview WHERE project_id = ?)
+		      + (SELECT count() FROM crawlobserver.haloscan_positions WHERE project_id = ?)`,
+		projectID, projectID).Scan(&n)
 	if err != nil {
 		return false, err
 	}

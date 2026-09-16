@@ -115,10 +115,36 @@ func (s *Server) handleHaloscanSync(w http.ResponseWriter, r *http.Request) {
 
 const haloscanCompetitorsForTrends = 4
 
+// haloscanCompetitorsAttempts / Timeout: siteCompetitors timed out at 60 s on
+// pourdebon.com (15/09/2026), which cost the pipeline a second paid call.
+const (
+	haloscanCompetitorsAttempts = 2
+	haloscanCompetitorsTimeout  = 180 * time.Second
+)
+
+func fetchCompetitorsWithRetry(ctx context.Context, client *haloscan.Client, domain string) ([]haloscan.Competitor, error) {
+	client.SetTimeout(haloscanCompetitorsTimeout)
+	var lastErr error
+	for attempt := 1; attempt <= haloscanCompetitorsAttempts; attempt++ {
+		competitors, meta, err := client.DomainCompetitors(ctx, domain, 10)
+		if err == nil {
+			return competitors, nil
+		}
+		lastErr = err
+		if haloscan.IsInsufficientCredit(meta) || ctx.Err() != nil {
+			break // out of credit or sync cancelled: retrying changes nothing
+		}
+		if attempt < haloscanCompetitorsAttempts {
+			applog.Warnf("haloscan", "competitors attempt %d failed (%v), retrying", attempt, err)
+		}
+	}
+	return nil, lastErr
+}
+
 // runHaloscanSync orchestrates the 5 endpoint calls and persists into ClickHouse.
 // Runs in its own goroutine and logs progress via applog.
 func (s *Server) runHaloscanSync(projectID, domain string, positionMax int, skipDiff bool, apiKey string) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
 	defer cancel()
 
 	client := haloscan.NewClient(apiKey, "1.0")
@@ -191,8 +217,9 @@ func (s *Server) runHaloscanSync(projectID, domain string, positionMax int, skip
 		applog.Infof("haloscan", "positions ok count=%d", len(rows))
 	}
 
-	// 3) Competitors
-	competitors, _, err := client.DomainCompetitors(ctx, domain, 10)
+	// 3) Competitors — slow endpoint (1 to 2 min on a big domain). Without it
+	// the audit pipeline redoes the call and pays it again, so retry once.
+	competitors, err := fetchCompetitorsWithRetry(ctx, client, domain)
 	if err != nil {
 		applog.Errorf("haloscan", "competitors failed: %v", err)
 	}
